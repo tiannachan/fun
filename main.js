@@ -49,7 +49,7 @@ const ITEM_TYPES = [
 
 const BACKGROUND_PROFILES = [
     { title: "體驗生活的富二代", walletMin: 1200, walletMax: 2500, story: "屋企有幾間鋪，純粹屋企坐得太悶，出嚟跑單當減肥做運動。" },
-    { title: "投資失利的前i-Banker", walletMin: 200, walletMax: 600, story: "炒幣槓桿爆倉輸光積蓄，手頭得返幾百蚊，靠步兵重新起家。" },
+    { title: "投資失利的前iBanker", walletMin: 200, walletMax: 600, story: "炒幣槓桿爆倉輸光積蓄，手頭得返幾百蚊，靠步兵重新起家。" },
     { title: "剛畢業待業大專生", walletMin: 50, walletMax: 150, story: "搵咗三個月工都未有Offer，先跑步兵賺取零用錢過度。" },
     { title: "被裁員的IT工程師", walletMin: 300, walletMax: 800, story: "公司大裁員，打算邊跑單邊諗清楚人生方向。" },
     { title: "極度慳錢的退休叔叔", walletMin: 100, walletMax: 400, story: "退休無聊，每日跑幾單順便鍛鍊身體。" },
@@ -147,6 +147,9 @@ class Game {
         this.availableOrders = [];
         this.currentLocation = LOCATIONS.find(l => l.area === this.player.home) || LOCATIONS[0];
 
+        this.abandonedOrders = 0;
+        this.platformBanned = false;
+
         this.generateOrders(5);
         this.startDynamicPool();
         this.startGameLoop();
@@ -222,7 +225,7 @@ class Game {
         }
     }
 
-    // 動態訂單池：每 15 秒更新一張單（舊單移除，新單補入）
+    // 動態訂單池：每 10 秒更新一張單（舊單移除，新單補入）
     startDynamicPool() {
         if(this.poolInterval) clearInterval(this.poolInterval);
         this.poolInterval = setInterval(() => {
@@ -231,7 +234,7 @@ class Game {
             }
             this.generateOrders(1);
             this.updateUI();
-        }, 15000);
+        }, 10000);
     }
 
     generateOrders(count) {
@@ -273,7 +276,13 @@ class Game {
     updateUI() {
         const curLocObj = typeof this.currentLocation === 'string' ? LOCATIONS.find(l => l.name === this.currentLocation) : this.currentLocation;
         const curLocName = curLocObj ? curLocObj.name : this.currentLocation;
+        const flash = document.getElementById("danger-flash");
 
+        if (this.fatigue >= 80 || this.hunger >= 80) {
+            flash.classList.add("active");
+        } else {
+            flash.classList.remove("active");
+        }
         document.getElementById('p-name').innerText = `👤 ${this.player.name} (${this.player.title})`;
         document.getElementById('p-home').innerText = this.player.home;
         document.getElementById('p-money').innerText = `$${this.player.money}`;
@@ -391,6 +400,8 @@ class Game {
     }
 
     showTransportModal(destination, stage) {
+        this.currentTransportStage = stage;
+
         const realisticDelay = Math.floor(Math.random() * 11) + 10; // 10-20 mins
         const modal = document.getElementById('modal-transport');
         const info = document.getElementById('transport-info');
@@ -402,6 +413,9 @@ class Game {
         const pickupDetail = this.selectedOrder ? this.selectedOrder.pickup.name : curLocName;
         const targetDetail = this.selectedOrder ? this.selectedOrder.target.name : destination.name;
         const orderPay = this.selectedOrder ? this.selectedOrder.pay : 0;
+        const isExactSameLocation = curLocObj && (curLocObj.name === destination.name);
+        const isSameArea = curLocObj && (curLocObj.area === destination.area);
+        const isCrossHarbor = curLocObj && (curLocObj.area !== destination.area);
 
         info.innerHTML = `
             <div style = "background:#f0f0f2; padding 8px 10px; border-radius:8px; margin-bottom:12px; border:1px solid #e0e0e0; color:#333;">
@@ -410,18 +424,74 @@ class Game {
                 <b>🏁 送貨地點：</b>${targetDetail}<br>
                 <b>💰 訂單報酬：</b><span style ="color:var(--success); font-weight:bold;">+$${orderPay} 港幣</span>
             </div>
-            <div style = "color:var(--primary); font-weight:bold; margin-bottom:4px;">
-                目前階段：【${stage}】（前往：${destination.name}）
+            <div style="font-weight:bold; margin-bottom:4px;">
+                目前階段：【${stage}】
+
+                <br>
+
+                ${
+                    stage === "取貨"
+                    ? `
+                        <span style="
+                            background:#e3f2fd;
+                            color:#0288d1;
+                            padding:2px 6px;
+                            border-radius:4px;">
+                            🚶 ${curLocName}
+                        </span>
+
+                        ➜
+
+                        <span style="
+                            background:#fff3e0;
+                            color:#e65100;
+                            padding:2px 6px;
+                            border-radius:4px;">
+                            📦 ${this.selectedOrder.pickup.name}
+                        </span>
+                    `
+                    : `
+                        <span style="
+                            background:#fff3e0;
+                            color:#e65100;
+                            padding:2px 6px;
+                            border-radius:4px;">
+                            📦 ${this.selectedOrder.pickup.name}
+                        </span>
+
+                        ➜
+
+                        <span style="
+                            background:#e8f5e9;
+                            color:#2e7d32;
+                            padding:2px 6px;
+                            border-radius:4px;">
+                            🏁 ${this.selectedOrder.target.name}
+                        </span>
+                    `
+                }
+
             </div>
         `;
+
+        if (isExactSameLocation) {
+            info.innerHTML += `
+                <div style="
+                    background:#e8f5e9;
+                    color:#2e7d32;
+                    padding:8px;
+                    border-radius:8px;
+                    margin-top:8px;
+                    font-size:12px;
+                    font-weight:bold;">
+                    ✅ 此地點就在你目前所在地，無需乘搭交通工具。
+                </div>
+            `;
+        }
         optionsEl.innerHTML = "";
 
         // 啟動 20 秒倒數
         this.startTransportCountdown();
-
-        const isExactSameLocation = curLocObj && (curLocObj.name === destination.name);
-        const isSameArea = curLocObj && (curLocObj.area === destination.area);
-        const isCrossHarbor = curLocObj && (curLocObj.area !== destination.area);
 
         let walkBaseTime = isExactSameLocation ? 2 : (isSameArea ? 15 : 38);
         let mtrBaseTime = isExactSameLocation ? 2 : (isSameArea ? 10 : 18);
@@ -430,45 +500,61 @@ class Game {
         const extraWalkTime = isExactSameLocation ? 0 : destination.extraWalk;
         const extraFatigueVal = isExactSameLocation ? 0 : destination.extraFatigue;
 
-        const transports = [
-            { 
-                name: isExactSameLocation ? "🚶 就在原地/順路拿貨" : "🚶 步行走路", 
-                cost: 0, 
-                time: walkBaseTime + extraWalkTime + realisticDelay, 
-                fatigue: (isExactSameLocation ? 1 : 12) + extraFatigueVal 
-            },
-            { 
-                name: "🚇 港鐵 MTR", 
-                cost: isExactSameLocation ? 0 : (isCrossHarbor ? 14.5 : 6.5), 
-                time: mtrBaseTime + extraWalkTime + realisticDelay, 
-                fatigue: 4 + extraFatigueVal 
-            },
-            { 
-                name: "🚌 九巴/城巴 Bus", 
-                cost: isExactSameLocation ? 0 : (isCrossHarbor ? 11.2 : 5.8), 
-                time: busBaseTime + extraWalkTime + realisticDelay, 
-                fatigue: 5 + extraFatigueVal 
-            },
-            { 
-                name: "🚐 綠色小巴", 
-                cost: isExactSameLocation ? 0 : 7.5, 
-                time: (isSameArea ? 12 : 20) + extraWalkTime + realisticDelay, 
-                fatigue: 6 + extraFatigueVal, 
-                disabled: this.hasCart 
-            },
-            { 
-                name: "🚋 電車 / 輕鐵", 
-                cost: isExactSameLocation ? 0 : 3.0, 
-                time: (isSameArea ? 20 : 40) + extraWalkTime + realisticDelay, 
-                fatigue: 7 + extraFatigueVal 
-            },
-            { 
-                name: "🚕 的士 Taxi", 
-                cost: isExactSameLocation ? 0 : (isCrossHarbor ? 95.0 : 45.0), 
-                time: isExactSameLocation ? 2 : 10 + realisticDelay, 
-                fatigue: 1 
-            }
-        ];
+        let transports;
+
+        if (isExactSameLocation) {
+            transports = [
+                {
+                    name: "🚶 就在原地/順路拿貨",
+                    cost: 0,
+                    time: 2,
+                    fatigue: 1
+                }
+            ];
+
+        } else {
+
+            transports = [
+                {
+                    name: "🚶 步行走路",
+                    cost: 0,
+                    time: walkBaseTime + extraWalkTime + realisticDelay,
+                    fatigue: 12 + extraFatigueVal
+                },
+                {
+                    name: "🚇 港鐵 MTR",
+                    cost: isCrossHarbor ? 14.5 : 6.5,
+                    time: mtrBaseTime + extraWalkTime + realisticDelay,
+                    fatigue: 4 + extraFatigueVal
+                },
+                {
+                    name: "🚌 九巴/城巴 Bus",
+                    cost: isCrossHarbor ? 11.2 : 5.8,
+                    time: busBaseTime + extraWalkTime + realisticDelay,
+                    fatigue: 5 + extraFatigueVal
+                },
+                {
+                    name: "🚐 綠色小巴",
+                    cost: 7.5,
+                    time: (isSameArea ? 12 : 20) + extraWalkTime + realisticDelay,
+                    fatigue: 6 + extraFatigueVal,
+                    disabled: this.hasCart
+                },
+                {
+                    name: "🚋 電車 / 輕鐵",
+                    cost: 3.0,
+                    time: (isSameArea ? 20 : 40) + extraWalkTime + realisticDelay,
+                    fatigue: 7 + extraFatigueVal
+                },
+                {
+                    name: "🚕 的士 Taxi",
+                    cost: isCrossHarbor ? 95.0 : 45.0,
+                    time: 10 + realisticDelay,
+                    fatigue: 1
+                }
+            ];
+
+        }   
 
         transports.forEach(t => {
             const opt = document.createElement('div');
@@ -482,8 +568,95 @@ class Game {
             `;
             optionsEl.appendChild(opt);
         });
+        const btn = document.getElementById('btn-abandon-order');
+
+        if(stage === "送貨"){
+            btn.innerText = "⚠️ 棄單 (-$50, 回程返貨20分鐘)";
+            btn.style.background = "var(--danger)";
+            btn.style.color = "white";
+        }else{
+            btn.innerText = "放棄此單";
+            btn.style.background = "#e0e0e0";
+            btn.style.color = "#333";
+        }
 
         modal.style.display = "flex";
+    }
+
+    handleOrderCancel() {
+        // 尚未取貨
+        if(this.currentTransportStage === "取貨"){
+
+            this.cancelTransportSelection(
+                '手動取消',
+                true
+            );
+            return;
+        }
+
+        // 已取貨，送貨途中棄單
+        this.abandonCurrentOrder();
+    }
+
+    abandonCurrentOrder() {
+        if(!this.selectedOrder) return;
+
+        const confirmQuit = confirm(
+            "⚠️ 棄單後需要返回商戶\n\n" +
+            "時間: +20分鐘\n" +
+            "平台罰款: $50\n" +
+            "累積3次將永久停權\n\n" +
+            "確定棄單？"
+        );
+
+        if(!confirmQuit) return;
+
+        if(this.timerId) clearInterval(this.timerId);
+
+        if(this.latePenaltyInterval){
+            clearInterval(this.latePenaltyInterval);
+            this.latePenaltyInterval = null;
+        }
+
+        // 回商戶
+        this.currentTime += 20;
+
+        // 罰款
+        this.player.money -= 50;
+        this.penalties += 50;
+
+        // 棄單次數
+        this.abandonedOrders++;
+
+        // 回到取貨地點
+        this.currentLocation = this.selectedOrder.pickup;
+
+        // 丟棄貨物
+        this.selectedOrder = null;
+        this.isCarryingOrder = false;
+
+        document.getElementById('modal-transport').style.display = "none";
+
+        alert(
+            `⚠️ 你已棄單！\n` +
+            `累積棄單: ${this.abandonedOrders}/3`
+        );
+
+        if(this.abandonedOrders >= 3){
+            alert(
+                "🚫 平台安全系統偵測到你多次棄單。\n\n" +
+                "由於嚴重影響客戶體驗及商戶營運，\n" +
+                "你的步兵帳號已被永久停權。\n\n" +
+                "你已無法再於平台接單。"
+            );
+            this.endGame(
+                "因累積棄單3次，被平台永久停權"
+            );
+            return;
+        }
+
+        this.saveState();
+        this.updateUI();
     }
 
     // 20 秒倒數控制
@@ -509,8 +682,37 @@ class Game {
 
             if (timeLeft <= 0) {
                 clearInterval(this.timerId);
-                this.cancelTransportSelection('逾時未選擇交通，訂單已失效！');
+
+                if (this.currentTransportStage === "取貨") {
+
+                    this.cancelTransportSelection(
+                        '逾時未選擇交通，訂單已失效！'
+                    );
+
+                } else {
+
+                    this.startLatePenaltyMode();
+
+                }
             }
+        }, 1000);
+    }
+    
+    startLatePenaltyMode() {
+        const timerEl = document.getElementById('countdown-timer');
+
+        timerEl.innerText = "⚠️ 客戶催單中";
+
+        this.latePenaltyInterval = setInterval(() => {
+
+            this.player.money -= 1;
+            this.penalties += 1;
+
+            timerEl.innerText =
+                `⚠️ 延誤中 (-$${this.penalties})`;
+
+            this.updateUI();
+
         }, 1000);
     }
 
@@ -526,6 +728,12 @@ class Game {
 
     executeTravel(stage, cost, time, fatigue, newLocName) {
         if(this.timerId) clearInterval(this.timerId);
+
+        if(this.latePenaltyInterval){
+            clearInterval(this.latePenaltyInterval);
+            this.latePenaltyInterval = null;
+        }
+
         document.getElementById('modal-transport').style.display = "none";
 
         this.player.money -= cost;
@@ -540,6 +748,7 @@ class Game {
         this.currentLocation = LOCATIONS.find(l => l.name === newLocName) || newLocName;
 
         if(stage === "取貨") {
+            this.isCarryingOrder = true;
             // 從可用訂單池中移除此單
             const orderIndex = this.availableOrders.findIndex(o => o.id === this.selectedOrder.id);
             if(orderIndex !== -1) this.availableOrders.splice(orderIndex, 1);
@@ -558,6 +767,7 @@ class Game {
         const ord = this.selectedOrder;
         let finalPay = ord.pay;
         let isDamaged = false;
+        this.isCarryingOrder = false;
 
         if(ord.item.needBag && !this.hasBag) {
             isDamaged = true;
@@ -640,8 +850,17 @@ class Game {
         if(this.poolInterval) clearInterval(this.poolInterval);
         localStorage.removeItem('hk_courier_saved_state');
 
-        const netProfit = (this.earnings + this.tips) - this.expensesTrans - this.expensesFood - this.expensesEquip - this.penalties;
-        
+        const netProfit = Number(
+            (
+                (this.earnings + this.tips)
+                - this.expensesTrans
+                - this.expensesFood
+                - this.expensesEquip
+                - this.penalties
+            ).toFixed(1)
+        );
+
+
         if(netProfit > this.highScore) {
             this.highScore = netProfit;
             localStorage.setItem('hk_courier_highscore', this.highScore);
@@ -711,7 +930,8 @@ class Game {
             completedOrders: this.completedOrders,
             currentLocation: this.currentLocation,
             availableOrders: this.availableOrders,
-            historyLog: this.historyLog
+            historyLog: this.historyLog,
+            abandonedOrders: this.abandonedOrders,
         };
         localStorage.setItem('hk_courier_saved_state', JSON.stringify(state));
     }
@@ -737,6 +957,7 @@ class Game {
             this.currentLocation = state.currentLocation;
             this.availableOrders = state.availableOrders;
             this.historyLog = state.historyLog || [];
+            this.abandonedOrders = state.abandonedOrders || 0;
 
             document.getElementById('screen-start').style.display = 'none';
             document.getElementById('main-game').style.display = 'flex';

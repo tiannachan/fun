@@ -138,7 +138,11 @@
 
         <p id="transport-info" style="font-size:13px; color:var(--text-sub); margin-top:0;"></p>
         <div id="transport-options"></div>
-        <button onclick="game.cancelTransportSelection('手動取消', true)" style="width:100%; margin-top:10px; background:#e0e0e0; color:#333;">放棄此單</button>
+        <button id="btn-abandon-order"
+                onclick="game.handleOrderCancel()"
+                style="width:100%; margin-top:10px; background:#e0e0e0; color:#333;">
+            放棄此單
+        </button>
     </div>
 </div>
 
@@ -169,6 +173,7 @@
     </div>
 </div>
 
+<div id="danger-flash"></div>
 
 <script src="main.js"></script>
 </body>
