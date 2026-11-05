@@ -1,1 +1,183 @@
 
+:root {
+    --primary: #d32f2f;
+    --bg: #121212;
+    --card-bg: #1e1e1e;
+    --text: #ffffff;
+    --accent: #ffb300;
+    --success: #388e3c;
+    --info: #0288d1;
+}
+
+* { 
+    box-sizing: border-box; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+}
+
+body { 
+    margin: 0; 
+    padding: 0; 
+    background-color: var(--bg); 
+    color: var(--text); 
+    font-size: 14px; 
+    user-select: none; 
+}
+
+.container { 
+    max-width: 600px; 
+    margin: 0 auto; 
+    padding: 12px; 
+    min-height: 100vh; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+}
+
+.card { 
+    background: var(--card-bg); 
+    padding: 12px; 
+    border-radius: 10px; 
+    border: 1px solid #333; 
+}
+
+.header-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 8px; 
+    margin-top: 6px; 
+}
+
+.profile-title { 
+    color: var(--accent); 
+    font-weight: bold; 
+    font-size: 17px; 
+}
+
+/* 進度條樣式 */
+.bar-container { 
+    background: #333; 
+    height: 10px; 
+    border-radius: 5px; 
+    overflow: hidden; 
+    margin-top: 3px; 
+}
+
+.bar-fill { 
+    height: 100%; 
+    transition: width 0.3s; 
+}
+
+.bar-fatigue { background: #e53935; }
+.bar-hunger { background: #fb8c00; }
+.bar-time { background: #29b6f6; }
+
+/* 按鈕風格 */
+button { 
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    padding: 10px 14px; 
+    border-radius: 6px; 
+    font-weight: bold; 
+    cursor: pointer; 
+}
+
+button:disabled { 
+    background: #555 !important; 
+    cursor: not-allowed; 
+    opacity: 0.5; 
+}
+
+.btn-action { 
+    background: #333; 
+    border: 1px solid #555; 
+}
+
+.btn-buy { 
+    background: #2e7d32; 
+}
+
+/* 訂單卡片 */
+.order-card { 
+    background: #282828; 
+    border-left: 5px solid var(--accent); 
+    padding: 12px; 
+    margin-bottom: 10px; 
+    border-radius: 6px; 
+}
+
+.route-header { 
+    font-size: 16px; 
+    font-weight: bold; 
+    color: #fff; 
+    margin-bottom: 6px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+
+.route-path { 
+    color: var(--accent); 
+    font-size: 15px; 
+    font-weight: bold; 
+}
+
+.item-tag { 
+    background: #333; 
+    padding: 3px 8px; 
+    border-radius: 4px; 
+    font-size: 12px; 
+    display: inline-block; 
+    margin-top: 4px; 
+}
+
+/* 彈窗樣式 */
+.modal { 
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0,0,0,0.88); 
+    z-index: 100; 
+    justify-content: center; 
+    align-items: center; 
+    padding: 15px; 
+}
+
+.modal-content { 
+    background: var(--card-bg); 
+    width: 100%; 
+    max-width: 500px; 
+    border-radius: 12px; 
+    padding: 18px; 
+    max-height: 90vh; 
+    overflow-y: auto; 
+    border: 1px solid #444; 
+}
+
+.transport-option { 
+    background: #2a2a2a; 
+    border: 1px solid #444; 
+    padding: 10px; 
+    border-radius: 6px; 
+    margin-bottom: 8px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+
+.report-row { 
+    display: flex; 
+    justify-content: space-between; 
+    padding: 6px 0; 
+    border-bottom: 1px solid #333; 
+}
+
+.badge { 
+    background: #444; 
+    padding: 2px 6px; 
+    border-radius: 4px; 
+    font-size: 11px; 
+}
