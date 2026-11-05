@@ -118,18 +118,26 @@
     </div>
 </div>
 
-<!-- Transport Modal with 20s Countdown -->
+
+<!-- Transport Modal with 20s Countdown & Bar -->
 <div id="modal-transport" class="modal">
     <div class="modal-content">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <h3 style="margin:0; color:var(--primary);">🚕 選擇交通工具前往</h3>
-            <span id="countdown-timer" style="background:var(--danger); color:white; padding:3px 8px; border-radius:12px; font-weight:bold; font-size:13px;">⏱️ 20s</span>
+            <span id="countdown-timer" style="background:var(--danger); color:white; padding:3px 8px; border-radius:12px; font-weight:bold; font-size:12px;">⏱️ 20s</span>
         </div>
+        
+        <!-- 倒數計時進度條 -->
+        <div class="timer-bar-container">
+            <div id="timer-bar-fill" class="timer-bar-fill"></div>
+        </div>
+
         <p id="transport-info" style="font-size:13px; color:var(--text-sub); margin-top:0;"></p>
         <div id="transport-options"></div>
         <button onclick="game.cancelTransportSelection('手動取消')" style="width:100%; margin-top:10px; background:#e0e0e0; color:#333;">放棄此單</button>
     </div>
 </div>
+
 
 <!-- Report Modal -->
 <div id="modal-report" class="modal">
