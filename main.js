@@ -1,4 +1,3 @@
-
 // --- 30 個香港擬真地點 ---
 const LOCATIONS = [
     { name: "旺角朗豪坊", area: "九龍", terrain: "平地商場", extraWalk: 2, extraFatigue: 2 },
@@ -63,7 +62,6 @@ class Game {
         this.highScore = parseInt(localStorage.getItem('hk_courier_highscore')) || 0;
         document.getElementById('high-score-display').innerText = `$${this.highScore} 港幣`;
         
-        // 嘗試從記憶 (LocalStorage) 恢復進行中的遊戲
         if(localStorage.getItem('hk_courier_saved_state')) {
             this.loadState();
         }
@@ -214,19 +212,77 @@ class Game {
         const info = document.getElementById('transport-info');
         const optionsEl = document.getElementById('transport-options');
         
-        const curLocName = this.currentLocation.name || this.currentLocation;
+        const curLocObj = typeof this.currentLocation === 'string' ? LOCATIONS.find(l => l.name === this.currentLocation) : this.currentLocation;
+        const curLocName = curLocObj ? curLocObj.name : "未知地點";
         info.innerText = `從 【${curLocName}】 前往 【${destination.name}】 (${stage})`;
         optionsEl.innerHTML = "";
 
-        const isCrossHarbor = (this.currentLocation.area && destination.area) && (this.currentLocation.area !== destination.area);
-        
+        // --- 動態距離與時間算法計算 ---
+        const isExactSameLocation = curLocObj && (curLocObj.name === destination.name);
+        const isSameArea = curLocObj && (curLocObj.area === destination.area);
+        const isCrossHarbor = curLocObj && (curLocObj.area !== destination.area);
+
+        let walkBaseTime = 30;
+        let mtrBaseTime = 18;
+        let busBaseTime = 25;
+
+        if (isExactSameLocation) {
+            // 在同一個地點：幾乎不用移動，只需幾分鐘拿貨
+            walkBaseTime = 2;
+            mtrBaseTime = 2;
+            busBaseTime = 2;
+        } else if (isSameArea) {
+            // 同一分區內（如旺角走到深水埗）：12 - 18 分鐘
+            walkBaseTime = 15;
+            mtrBaseTime = 10;
+            busBaseTime = 12;
+        } else {
+            // 跨區（如九龍到新界/港島）：較遠
+            walkBaseTime = 38;
+        }
+
+        // 當在同一個地點時，不計入額外地形爬山懲罰（因為你已經到了）
+        const extraWalkTime = isExactSameLocation ? 0 : destination.extraWalk;
+        const extraFatigueVal = isExactSameLocation ? 0 : destination.extraFatigue;
+
         const transports = [
-            { name: "🚶 步行走路", cost: 0, time: 38 + destination.extraWalk, fatigue: 16 + destination.extraFatigue },
-            { name: "🚇 港鐵 MTR", cost: isCrossHarbor ? 14.5 : 6.5, time: 18 + destination.extraWalk, fatigue: 4 + destination.extraFatigue },
-            { name: "🚌 九巴/城巴 Bus", cost: isCrossHarbor ? 11.2 : 5.8, time: 25 + destination.extraWalk, fatigue: 5 + destination.extraFatigue },
-            { name: "🚐 綠色小巴", cost: 7.5, time: 20 + destination.extraWalk, fatigue: 6 + destination.extraFatigue, disabled: this.hasCart },
-            { name: "🚋 電車 / 輕鐵", cost: 3.0, time: 42 + destination.extraWalk, fatigue: 7 + destination.extraFatigue },
-            { name: "🚕 紅色/綠色 的士 Taxi", cost: isCrossHarbor ? 95.0 : 45.0, time: 10, fatigue: 1 }
+            { 
+                name: isExactSameLocation ? "🚶 就在原地/順路拿貨" : "🚶 步行走路", 
+                cost: 0, 
+                time: walkBaseTime + extraWalkTime, 
+                fatigue: (isExactSameLocation ? 1 : 12) + extraFatigueVal 
+            },
+            { 
+                name: "🚇 港鐵 MTR", 
+                cost: isExactSameLocation ? 0 : (isCrossHarbor ? 14.5 : 6.5), 
+                time: mtrBaseTime + extraWalkTime, 
+                fatigue: 4 + extraFatigueVal 
+            },
+            { 
+                name: "🚌 九巴/城巴 Bus", 
+                cost: isExactSameLocation ? 0 : (isCrossHarbor ? 11.2 : 5.8), 
+                time: busBaseTime + extraWalkTime, 
+                fatigue: 5 + extraFatigueVal 
+            },
+            { 
+                name: "🚐 綠色小巴", 
+                cost: isExactSameLocation ? 0 : 7.5, 
+                time: (isSameArea ? 12 : 20) + extraWalkTime, 
+                fatigue: 6 + extraFatigueVal, 
+                disabled: this.hasCart 
+            },
+            { 
+                name: "🚋 電車 / 輕鐵", 
+                cost: isExactSameLocation ? 0 : 3.0, 
+                time: (isSameArea ? 20 : 40) + extraWalkTime, 
+                fatigue: 7 + extraFatigueVal 
+            },
+            { 
+                name: "🚕 紅色/綠色 的士 Taxi", 
+                cost: isExactSameLocation ? 0 : (isCrossHarbor ? 95.0 : 45.0), 
+                time: isExactSameLocation ? 2 : 10, 
+                fatigue: 1 
+            }
         ];
 
         transports.forEach(t => {
@@ -235,7 +291,7 @@ class Game {
             opt.innerHTML = `
                 <div>
                     <strong>${t.name}</strong> ${t.disabled ? '<span style="color:red;">(推車無法上車)</span>' : ''}<br>
-                    <small>車費: $${t.cost} | 車程: ~${t.time}分鐘 | 疲勞: +${t.fatigue}%</small>
+                    <small>車費: $${t.cost} | 時間: ~${t.time}分鐘 | 疲勞: +${t.fatigue}%</small>
                 </div>
                 <button ${t.disabled || this.player.money < t.cost ? 'disabled' : ''} onclick="game.executeTravel('${stage}', ${t.cost}, ${t.time}, ${t.fatigue}, '${destination.name}')">選擇</button>
             `;
@@ -252,7 +308,7 @@ class Game {
         this.expensesTrans += cost;
         this.currentTime += time;
         this.fatigue += fatigue;
-        this.hunger += time * 0.14;
+        this.hunger += time * 0.12;
         this.currentLocation = LOCATIONS.find(l => l.name === newLocName) || newLocName;
 
         if(stage === "取貨") {
