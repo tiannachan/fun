@@ -1,12 +1,13 @@
-
 :root {
-    --primary: #d32f2f;
-    --bg: #121212;
-    --card-bg: #1e1e1e;
-    --text: #ffffff;
-    --accent: #ffb300;
-    --success: #388e3c;
-    --info: #0288d1;
+    --primary: #e65100;
+    --bg: #f5f5f7;
+    --card-bg: #ffffff;
+    --text: #1d1d1f;
+    --text-sub: #6e6e73;
+    --accent: #f57c00;
+    --success: #2e7d32;
+    --danger: #c62828;
+    --border: #e0e0e0;
 }
 
 * { 
@@ -35,9 +36,10 @@ body {
 
 .card { 
     background: var(--card-bg); 
-    padding: 12px; 
-    border-radius: 10px; 
-    border: 1px solid #333; 
+    padding: 14px; 
+    border-radius: 12px; 
+    border: 1px solid var(--border); 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
 .header-grid { 
@@ -45,17 +47,18 @@ body {
     grid-template-columns: 1fr 1fr; 
     gap: 8px; 
     margin-top: 6px; 
+    color: var(--text-sub);
 }
 
 .profile-title { 
-    color: var(--accent); 
+    color: var(--primary); 
     font-weight: bold; 
     font-size: 17px; 
 }
 
 /* 進度條樣式 */
 .bar-container { 
-    background: #333; 
+    background: #eee; 
     height: 10px; 
     border-radius: 5px; 
     overflow: hidden; 
@@ -69,7 +72,7 @@ body {
 
 .bar-fatigue { background: #e53935; }
 .bar-hunger { background: #fb8c00; }
-.bar-time { background: #29b6f6; }
+.bar-time { background: #0288d1; }
 
 /* 按鈕風格 */
 button { 
@@ -77,20 +80,27 @@ button {
     color: white; 
     border: none; 
     padding: 10px 14px; 
-    border-radius: 6px; 
+    border-radius: 8px; 
     font-weight: bold; 
     cursor: pointer; 
+    transition: opacity 0.2s;
+}
+
+button:active {
+    opacity: 0.8;
 }
 
 button:disabled { 
-    background: #555 !important; 
+    background: #ccc !important; 
+    color: #888 !important;
     cursor: not-allowed; 
-    opacity: 0.5; 
+    opacity: 0.7; 
 }
 
 .btn-action { 
-    background: #333; 
-    border: 1px solid #555; 
+    background: #f0f0f2; 
+    color: var(--text);
+    border: 1px solid #ddd; 
 }
 
 .btn-buy { 
@@ -99,36 +109,64 @@ button:disabled {
 
 /* 訂單卡片 */
 .order-card { 
-    background: #282828; 
+    background: #fff; 
+    border: 1px solid #e0e0e0;
     border-left: 5px solid var(--accent); 
     padding: 12px; 
     margin-bottom: 10px; 
-    border-radius: 6px; 
+    border-radius: 8px; 
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
 }
 
 .route-header { 
-    font-size: 16px; 
+    font-size: 15px; 
     font-weight: bold; 
-    color: #fff; 
-    margin-bottom: 6px; 
+    color: var(--text); 
+    margin-bottom: 4px; 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
 }
 
 .route-path { 
-    color: var(--accent); 
+    color: var(--primary); 
     font-size: 15px; 
     font-weight: bold; 
 }
 
 .item-tag { 
-    background: #333; 
+    background: #f5f5f7; 
+    color: #444;
     padding: 3px 8px; 
     border-radius: 4px; 
     font-size: 12px; 
     display: inline-block; 
     margin-top: 4px; 
+    border: 1px solid #eee;
+}
+
+/* 歷史單路誌 Block */
+.history-item {
+    background: #f9f9fb;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.history-item-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    color: var(--text);
+    margin-bottom: 3px;
+}
+
+.history-item-details {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-sub);
 }
 
 /* 彈窗樣式 */
@@ -139,7 +177,8 @@ button:disabled {
     left: 0; 
     width: 100%; 
     height: 100%; 
-    background: rgba(0,0,0,0.88); 
+    background: rgba(0,0,0,0.6); 
+    backdrop-filter: blur(3px);
     z-index: 100; 
     justify-content: center; 
     align-items: center; 
@@ -148,20 +187,21 @@ button:disabled {
 
 .modal-content { 
     background: var(--card-bg); 
+    color: var(--text);
     width: 100%; 
     max-width: 500px; 
-    border-radius: 12px; 
-    padding: 18px; 
+    border-radius: 14px; 
+    padding: 20px; 
     max-height: 90vh; 
     overflow-y: auto; 
-    border: 1px solid #444; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
 }
 
 .transport-option { 
-    background: #2a2a2a; 
-    border: 1px solid #444; 
+    background: #f9f9fb; 
+    border: 1px solid var(--border); 
     padding: 10px; 
-    border-radius: 6px; 
+    border-radius: 8px; 
     margin-bottom: 8px; 
     display: flex; 
     justify-content: space-between; 
@@ -171,13 +211,15 @@ button:disabled {
 .report-row { 
     display: flex; 
     justify-content: space-between; 
-    padding: 6px 0; 
-    border-bottom: 1px solid #333; 
+    padding: 8px 0; 
+    border-bottom: 1px solid #eee; 
 }
 
 .badge { 
-    background: #444; 
-    padding: 2px 6px; 
+    background: #e0f2fe; 
+    color: #0369a1;
+    padding: 3px 8px; 
     border-radius: 4px; 
     font-size: 11px; 
+    font-weight: bold;
 }
