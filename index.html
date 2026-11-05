@@ -1,1 +1,315 @@
 
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>步兵送貨模擬器 - Courier Simulator 3D</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none; /* 防止手機滑動刷新與縮放 */
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px 16px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            pointer-events: none;
+            font-size: 14px;
+        }
+        h1 { margin: 0 0 8px 0; font-size: 18px; color: #ffca28; }
+        .stat { margin: 4px 0; }
+        
+        /* 手機虛擬搖桿樣式 */
+        #joystick-zone {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            touch-action: none;
+        }
+        #joystick-knob {
+            position: absolute;
+            top: 35px;
+            left: 35px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 202, 40, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+    </style>
+    <!-- 引入 Three.js 庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="ui-overlay">
+        <h1>📦 步兵送貨大作戰</h1>
+        <div class="stat">完成訂單: <span id="score" style="color: #4caf50; font-weight: bold;">0</span></div>
+        <div class="stat">手頭包裹: <span id="carrying" style="color: #2196f3; font-weight: bold;">0 / 1</span></div>
+        <div class="stat">狀態: <span id="status-text" style="color: #ff9800;">前往【藍色貨倉】取貨</span></div>
+    </div>
+
+    <!-- 手機虛擬搖桿 -->
+    <div id="joystick-zone">
+        <div id="joystick-knob"></div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // --- 1. 初始化場景與相機 ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xa0a0a0);
+        scene.fog = new THREE.Fog(0xa0a0a0, 20, 100);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.set(0, 25, 25);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        // --- 2. 光源與環境 ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(20, 40, 20);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        const groundGeo = new THREE.PlaneGeometry(100, 100);
+        const groundMat = new THREE.MeshLambertMaterial({ color: 0x555555 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // 建築物裝飾
+        function createBuilding(x, z, w, h, d, color) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshLambertMaterial({ color });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, h / 2, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+        }
+        createBuilding(-15, -10, 8, 12, 8, 0x888888);
+        createBuilding(15, -12, 10, 15, 6, 0x777777);
+        createBuilding(-10, 15, 6, 8, 10, 0x999999);
+
+        // --- 3. 貨倉與送貨點 ---
+        const warehouseGroup = new THREE.Group();
+        const warehouseGeo = new THREE.CylinderGeometry(3, 3, 0.2, 32);
+        const warehouseMat = new THREE.MeshBasicMaterial({ color: 0x2196f3, transparent: true, opacity: 0.6 });
+        const warehouseMesh = new THREE.Mesh(warehouseGeo, warehouseMat);
+        warehouseGroup.position.set(-20, 0.1, 0);
+        warehouseGroup.add(warehouseMesh);
+        scene.add(warehouseGroup);
+
+        const targetGroup = new THREE.Group();
+        const targetGeo = new THREE.CylinderGeometry(3, 3, 0.2, 32);
+        const targetMat = new THREE.MeshBasicMaterial({ color: 0xf44336, transparent: true, opacity: 0.6 });
+        const targetMesh = new THREE.Mesh(targetGeo, targetMat);
+        targetGroup.position.set(20, 0.1, 10);
+        targetGroup.add(targetMesh);
+        scene.add(targetGroup);
+
+        // --- 4. 步兵玩家與包裹 ---
+        const playerGroup = new THREE.Group();
+        const bodyGeo = new THREE.BoxGeometry(1, 2, 1);
+        const bodyMat = new THREE.MeshLambertMaterial({ color: 0xff9800 });
+        const playerBody = new THREE.Mesh(bodyGeo, bodyMat);
+        playerBody.position.y = 1;
+        playerBody.castShadow = true;
+        playerGroup.add(playerBody);
+
+        const headGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const headMat = new THREE.MeshLambertMaterial({ color: 0xffcc80 });
+        const playerHead = new THREE.Mesh(headGeo, headMat);
+        playerHead.position.y = 2.5;
+        playerHead.castShadow = true;
+        playerGroup.add(playerHead);
+
+        const packageGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+        const packageMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
+        const packageMesh = new THREE.Mesh(packageGeo, packageMat);
+        packageMesh.position.set(0, 1.5, -0.8);
+        packageMesh.visible = false;
+        playerGroup.add(packageMesh);
+
+        playerGroup.position.set(0, 0, 0);
+        scene.add(playerGroup);
+
+        // --- 5. 移動控制 Logic (支援鍵盤 + 手機搖桿) ---
+        let score = 0;
+        let hasPackage = false;
+        const baseSpeed = 0.2;
+        let inputX = 0;
+        let inputZ = 0;
+
+        // 鍵盤控制 (電腦端)
+        const keys = {};
+        window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+        // 手機搖桿觸控 Logic
+        const joystickZone = document.getElementById('joystick-zone');
+        const joystickKnob = document.getElementById('joystick-knob');
+        let joystickActive = false;
+        let touchId = null;
+        const maxRadius = 35; // 搖桿移動最大半徑
+
+        joystickZone.addEventListener('touchstart', (e) => {
+            if (joystickActive) return;
+            const touch = e.changedTouches[0];
+            touchId = touch.identifier;
+            joystickActive = true;
+            updateJoystick(touch);
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!joystickActive) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === touchId) {
+                    updateJoystick(e.changedTouches[i]);
+                    break;
+                }
+            }
+        });
+
+        const endTouch = (e) => {
+            if (!joystickActive) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === touchId) {
+                    joystickActive = false;
+                    touchId = null;
+                    joystickKnob.style.transform = `translate(0px, 0px)`;
+                    inputX = 0;
+                    inputZ = 0;
+                    break;
+                }
+            }
+        };
+
+        window.addEventListener('touchend', endTouch);
+        window.addEventListener('touchcancel', endTouch);
+
+        function updateJoystick(touch) {
+            const rect = joystickZone.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            let deltaX = touch.clientX - centerX;
+            let deltaY = touch.clientY - centerY;
+            const distance = Math.hypot(deltaX, deltaY);
+
+            if (distance > maxRadius) {
+                deltaX = (deltaX / distance) * maxRadius;
+                deltaY = (deltaY / distance) * maxRadius;
+            }
+
+            joystickKnob.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+            
+            // 歸一化輸出 (-1 到 1)
+            inputX = deltaX / maxRadius;
+            inputZ = deltaY / maxRadius;
+        }
+
+        // --- 6. 遊戲主循環 ---
+        function updateUI() {
+            document.getElementById('score').innerText = score;
+            document.getElementById('carrying').innerText = hasPackage ? "1 / 1" : "0 / 1";
+            const statusText = document.getElementById('status-text');
+            if (hasPackage) {
+                statusText.innerText = "請快遞至【紅色送貨區】";
+                statusText.style.color = "#4caf50";
+            } else {
+                statusText.innerText = "前往【藍色貨倉】取貨";
+                statusText.style.color = "#ff9800";
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 計算輸入向量 (結合鍵盤與手機搖桿)
+            let moveX = inputX;
+            let moveZ = inputZ;
+
+            if (keys['w'] || keys['arrowup']) moveZ = -1;
+            if (keys['s'] || keys['arrowdown']) moveZ = 1;
+            if (keys['a'] || keys['arrowleft']) moveX = -1;
+            if (keys['d'] || keys['arrowright']) moveX = 1;
+
+            const currentSpeed = hasPackage ? baseSpeed * 0.75 : baseSpeed;
+
+            if (Math.abs(moveX) > 0.1 || Math.abs(moveZ) > 0.1) {
+                const len = Math.hypot(moveX, moveZ);
+                const normX = moveX / len;
+                const normZ = moveZ / len;
+
+                playerGroup.position.x += normX * currentSpeed;
+                playerGroup.position.z += normZ * currentSpeed;
+
+                const angle = Math.atan2(normX, normZ);
+                playerGroup.rotation.y = angle;
+            }
+
+            // 相機跟隨
+            camera.position.x = playerGroup.position.x;
+            camera.position.z = playerGroup.position.z + 25;
+            camera.lookAt(playerGroup.position);
+
+            // 送貨與取貨距離判定
+            if (!hasPackage && playerGroup.position.distanceTo(warehouseGroup.position) < 3.0) {
+                hasPackage = true;
+                packageMesh.visible = true;
+                updateUI();
+            }
+
+            if (hasPackage && playerGroup.position.distanceTo(targetGroup.position) < 3.0) {
+                hasPackage = false;
+                packageMesh.visible = false;
+                score += 100;
+                targetGroup.position.x = (Math.random() - 0.5) * 60;
+                targetGroup.position.z = (Math.random() - 0.5) * 60;
+                updateUI();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
