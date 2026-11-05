@@ -1,315 +1,452 @@
-
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>步兵送貨模擬器 - Courier Simulator 3D</title>
+    <title>香港步兵送貨模擬器 HK Courier Simulator</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none; /* 防止手機滑動刷新與縮放 */
+        :root {
+            --primary: #d32f2f;
+            --bg: #121212;
+            --card-bg: #1e1e1e;
+            --text: #ffffff;
+            --accent: #ffb300;
+            --success: #388e3c;
         }
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-        }
-        #ui-overlay {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            color: #fff;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 12px 16px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            pointer-events: none;
-            font-size: 14px;
-        }
-        h1 { margin: 0 0 8px 0; font-size: 18px; color: #ffca28; }
-        .stat { margin: 4px 0; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { margin: 0; padding: 0; background-color: var(--bg); color: var(--text); font-size: 14px; user-select: none; }
+        .container { max-width: 600px; margin: 0 auto; padding: 12px; min-height: 100vh; display: flex; flex-direction: column; gap: 10px; }
         
-        /* 手機虛擬搖桿樣式 */
-        #joystick-zone {
-            position: absolute;
-            bottom: 40px;
-            left: 40px;
-            width: 120px;
-            height: 120px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
-            touch-action: none;
-        }
-        #joystick-knob {
-            position: absolute;
-            top: 35px;
-            left: 35px;
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 202, 40, 0.8);
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-        }
+        /* 頂部狀態列 */
+        .card { background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid #333; }
+        .header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .profile-title { color: var(--accent); font-weight: bold; font-size: 16px; margin-bottom: 4px; grid-column: span 2; }
+        
+        /* 進度條 */
+        .bar-container { background: #333; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 3px; }
+        .bar-fill { height: 100%; transition: width 0.3s; }
+        .bar-fatigue { background: #e53935; }
+        .bar-hunger { background: #fb8c00; }
+        .bar-time { background: #29b6f6; }
+
+        /* 按鈕風格 */
+        button { background: var(--primary); color: white; border: none; padding: 10px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #555; cursor: not-allowed; opacity: 0.6; }
+        .btn-action { background: #333; border: 1px solid #555; }
+        .btn-buy { background: #2e7d32; }
+
+        /* 訂單卡片 */
+        .order-card { background: #282828; border-left: 4px solid var(--accent); padding: 10px; margin-bottom: 8px; border-radius: 4px; }
+        .order-title { font-weight: bold; color: var(--accent); display: flex; justify-content: space-between; }
+        .badge { background: #444; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+
+        /* 彈窗 Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; padding: 15px; }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 500px; border-radius: 10px; padding: 16px; max-height: 90vh; overflow-y: auto; }
+        
+        .transport-option { background: #2a2a2a; border: 1px solid #444; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .report-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #333; }
     </style>
-    <!-- 引入 Three.js 庫 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <div id="ui-overlay">
-        <h1>📦 步兵送貨大作戰</h1>
-        <div class="stat">完成訂單: <span id="score" style="color: #4caf50; font-weight: bold;">0</span></div>
-        <div class="stat">手頭包裹: <span id="carrying" style="color: #2196f3; font-weight: bold;">0 / 1</span></div>
-        <div class="stat">狀態: <span id="status-text" style="color: #ff9800;">前往【藍色貨倉】取貨</span></div>
+<div class="container">
+    <!-- 主角與狀態卡片 -->
+    <div class="card">
+        <div class="profile-title" id="p-name">載入中...</div>
+        <div class="header-grid">
+            <div>住址: <span id="p-home">--</span></div>
+            <div>資金: <span id="p-money" style="color:#4caf50; font-weight:bold;">$0</span></div>
+            <div>裝備: <span id="p-equip">基本背包</span></div>
+            <div>當前位置: <span id="p-loc" style="color:#29b6f6;">--</span></div>
+        </div>
+        
+        <div style="margin-top: 8px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px;">
+                <span>時間 (09:00 - 22:00)</span><span id="txt-time">09:00</span>
+            </div>
+            <div class="bar-container"><div id="bar-time" class="bar-fill bar-time" style="width:0%"></div></div>
+
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:4px;">
+                <span>疲勞度</span><span id="txt-fatigue">0%</span>
+            </div>
+            <div class="bar-container"><div id="bar-fatigue" class="bar-fill bar-fatigue" style="width:0%"></div></div>
+
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:4px;">
+                <span>飢餓度</span><span id="txt-hunger">0%</span>
+            </div>
+            <div class="bar-container"><div id="bar-hunger" class="bar-fill bar-hunger" style="width:0%"></div></div>
+        </div>
     </div>
 
-    <!-- 手機虛擬搖桿 -->
-    <div id="joystick-zone">
-        <div id="joystick-knob"></div>
+    <!-- 玩家動作面板 -->
+    <div class="card" style="display:flex; gap:8px;">
+        <button class="btn-action" style="flex:1;" onclick="game.rest()">🛌 休息 30分 (免費)</button>
+        <button class="btn-action" style="flex:1;" onclick="game.eat()">茶餐廳 30分 ($55)</button>
+        <button class="btn-action" style="background:#b71c1c;" onclick="game.endGame('主動收工')">🚪 收工結算</button>
     </div>
 
-    <div id="canvas-container"></div>
+    <!-- 道具裝備商城 -->
+    <div class="card">
+        <div style="font-weight:bold; margin-bottom:6px;">🏪 步兵裝備店</div>
+        <div style="display:flex; gap:8px;">
+            <button class="btn-buy" id="btn-bag" style="flex:1;" onclick="game.buyItem('bag')">買保溫袋 ($80)</button>
+            <button class="btn-buy" id="btn-cart" style="flex:1;" onclick="game.buyItem('cart')">買手推車 ($200)</button>
+        </div>
+    </div>
 
-    <script>
-        // --- 1. 初始化場景與相機 ---
-        const container = document.getElementById('canvas-container');
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xa0a0a0);
-        scene.fog = new THREE.Fog(0xa0a0a0, 20, 100);
+    <!-- 訂單接單池 -->
+    <div class="card" style="flex:1;">
+        <div style="font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between;">
+            <span>📦 可接訂單池 (最多可持 <span id="holding-count">0</span>/2 單)</span>
+            <span id="weather-tag" class="badge" style="background:#0288d1;">🌤️ 天氣晴朗</span>
+        </div>
+        <div id="orders-list"></div>
+    </div>
+</div>
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
-        camera.position.set(0, 25, 25);
+<!-- 交通選擇 Modal -->
+<div id="modal-transport" class="modal">
+    <div class="modal-content">
+        <h3 style="margin-top:0; color:var(--accent);">🚌 選擇前往取貨/送貨交通工具</h3>
+        <p id="transport-info" style="font-size:13px; color:#aaa;"></p>
+        <div id="transport-options"></div>
+        <button onclick="document.getElementById('modal-transport').style.display='none'" style="width:100%; margin-top:10px; background:#555;">取消</button>
+    </div>
+</div>
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
-        container.appendChild(renderer.domElement);
+<!-- 結算報告 Modal -->
+<div id="modal-report" class="modal">
+    <div class="modal-content">
+        <h2 style="text-align:center; color:var(--accent); margin-top:0;">📋 今日送貨總結報告</h2>
+        <div id="report-details"></div>
+        <button onclick="location.reload()" style="width:100%; margin-top:15px; font-size:16px;">重新開始新一日</button>
+    </div>
+</div>
 
-        // --- 2. 光源與環境 ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
+<script>
+// --- 地點與擬真交通數據 ---
+const LOCATIONS = [
+    { name: "旺角朗豪坊", area: "九龍", terrain: "平地", extraWalkTime: 2, extraFatigue: 2 },
+    { name: "觀塘 APM", area: "九龍", terrain: "平地", extraWalkTime: 3, extraFatigue: 3 },
+    { name: "中環遮打大廈", area: "港島", terrain: "平地", extraWalkTime: 4, extraFatigue: 4 },
+    { name: "西環正街半山", area: "港島", terrain: "半山長斜路", extraWalkTime: 12, extraFatigue: 15 },
+    { name: "深水埗基隆街唐樓", area: "九龍", terrain: "無電梯唐樓5樓", extraWalkTime: 8, extraFatigue: 18 },
+    { name: "慈雲山慈樂邨", area: "九龍", terrain: "陡峭山路", extraWalkTime: 15, extraFatigue: 20 },
+    { name: "荃灣南豐中心", area: "新界", terrain: "平地", extraWalkTime: 3, extraFatigue: 3 },
+    { name: "沙田新城市廣場", area: "新界", terrain: "平地", extraWalkTime: 4, extraFatigue: 3 },
+    { name: "元朗教育路", area: "新界", terrain: "平地", extraWalkTime: 5, extraFatigue: 5 }
+];
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(20, 40, 20);
-        dirLight.castShadow = true;
-        scene.add(dirLight);
+const ITEM_TYPES = [
+    { name: "緊急文件", weight: 0.5, needBag: false, needCart: false, penalty: 80, isBlind: false },
+    { name: "救急藥物", weight: 0.3, needBag: false, needCart: false, penalty: 100, isBlind: false },
+    { name: "鮮食蛋糕", weight: 1.5, needBag: true, needCart: false, penalty: 120, isBlind: false },
+    { name: "凍肉生鮮", weight: 3.0, needBag: true, needCart: false, penalty: 90, isBlind: false },
+    { name: "建材重物", weight: 12.0, needBag: false, needCart: true, penalty: 150, isBlind: false },
+    { name: "神秘盲盒包裹", weight: 2.0, needBag: false, needCart: false, penalty: 60, isBlind: true }
+];
 
-        const groundGeo = new THREE.PlaneGeometry(100, 100);
-        const groundMat = new THREE.MeshLambertMaterial({ color: 0x555555 });
-        const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.receiveShadow = true;
-        scene.add(ground);
+// 遊戲主物件
+class Game {
+    constructor() {
+        this.initPlayer();
+        this.currentTime = 9 * 60; // 09:00 (以分鐘計)
+        this.fatigue = 0;
+        this.hunger = 0;
+        this.hasBag = false;
+        this.hasCart = false;
+        
+        // 財務統計
+        this.earnings = 0;
+        this.expensesTrans = 0;
+        this.expensesFood = 0;
+        this.expensesEquip = 0;
+        this.penalties = 0;
+        this.tips = 0;
+        this.completedOrders = 0;
+        
+        this.activeOrders = [];
+        this.availableOrders = [];
+        this.currentLocation = this.player.home;
 
-        // 建築物裝飾
-        function createBuilding(x, z, w, h, d, color) {
-            const geo = new THREE.BoxGeometry(w, h, d);
-            const mat = new THREE.MeshLambertMaterial({ color });
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.set(x, h / 2, z);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            scene.add(mesh);
-        }
-        createBuilding(-15, -10, 8, 12, 8, 0x888888);
-        createBuilding(15, -12, 10, 15, 6, 0x777777);
-        createBuilding(-10, 15, 6, 8, 10, 0x999999);
+        this.generateOrders(4);
+        this.updateUI();
+    }
 
-        // --- 3. 貨倉與送貨點 ---
-        const warehouseGroup = new THREE.Group();
-        const warehouseGeo = new THREE.CylinderGeometry(3, 3, 0.2, 32);
-        const warehouseMat = new THREE.MeshBasicMaterial({ color: 0x2196f3, transparent: true, opacity: 0.6 });
-        const warehouseMesh = new THREE.Mesh(warehouseGeo, warehouseMat);
-        warehouseGroup.position.set(-20, 0.1, 0);
-        warehouseGroup.add(warehouseMesh);
-        scene.add(warehouseGroup);
-
-        const targetGroup = new THREE.Group();
-        const targetGeo = new THREE.CylinderGeometry(3, 3, 0.2, 32);
-        const targetMat = new THREE.MeshBasicMaterial({ color: 0xf44336, transparent: true, opacity: 0.6 });
-        const targetMesh = new THREE.Mesh(targetGeo, targetMat);
-        targetGroup.position.set(20, 0.1, 10);
-        targetGroup.add(targetMesh);
-        scene.add(targetGroup);
-
-        // --- 4. 步兵玩家與包裹 ---
-        const playerGroup = new THREE.Group();
-        const bodyGeo = new THREE.BoxGeometry(1, 2, 1);
-        const bodyMat = new THREE.MeshLambertMaterial({ color: 0xff9800 });
-        const playerBody = new THREE.Mesh(bodyGeo, bodyMat);
-        playerBody.position.y = 1;
-        playerBody.castShadow = true;
-        playerGroup.add(playerBody);
-
-        const headGeo = new THREE.SphereGeometry(0.5, 16, 16);
-        const headMat = new THREE.MeshLambertMaterial({ color: 0xffcc80 });
-        const playerHead = new THREE.Mesh(headGeo, headMat);
-        playerHead.position.y = 2.5;
-        playerHead.castShadow = true;
-        playerGroup.add(playerHead);
-
-        const packageGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
-        const packageMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
-        const packageMesh = new THREE.Mesh(packageGeo, packageMat);
-        packageMesh.position.set(0, 1.5, -0.8);
-        packageMesh.visible = false;
-        playerGroup.add(packageMesh);
-
-        playerGroup.position.set(0, 0, 0);
-        scene.add(playerGroup);
-
-        // --- 5. 移動控制 Logic (支援鍵盤 + 手機搖桿) ---
-        let score = 0;
-        let hasPackage = false;
-        const baseSpeed = 0.2;
-        let inputX = 0;
-        let inputZ = 0;
-
-        // 鍵盤控制 (電腦端)
-        const keys = {};
-        window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
-        window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
-
-        // 手機搖桿觸控 Logic
-        const joystickZone = document.getElementById('joystick-zone');
-        const joystickKnob = document.getElementById('joystick-knob');
-        let joystickActive = false;
-        let touchId = null;
-        const maxRadius = 35; // 搖桿移動最大半徑
-
-        joystickZone.addEventListener('touchstart', (e) => {
-            if (joystickActive) return;
-            const touch = e.changedTouches[0];
-            touchId = touch.identifier;
-            joystickActive = true;
-            updateJoystick(touch);
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            if (!joystickActive) return;
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === touchId) {
-                    updateJoystick(e.changedTouches[i]);
-                    break;
-                }
-            }
-        });
-
-        const endTouch = (e) => {
-            if (!joystickActive) return;
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === touchId) {
-                    joystickActive = false;
-                    touchId = null;
-                    joystickKnob.style.transform = `translate(0px, 0px)`;
-                    inputX = 0;
-                    inputZ = 0;
-                    break;
-                }
-            }
+    initPlayer() {
+        const names = ["陳大文", "張小明", "李嘉豪", "黃亞妹", "劉阿強"];
+        const ages = [19, 24, 32, 45, 52];
+        const homes = ["觀塘", "深水埗", "荃灣", "元朗"];
+        
+        this.player = {
+            name: names[Math.floor(Math.random()*names.length)],
+            age: ages[Math.floor(Math.random()*ages.length)],
+            home: homes[Math.floor(Math.random()*homes.length)],
+            money: 0,
+            maxWeight: 8 // 初始背負上限 8kg
         };
+    }
 
-        window.addEventListener('touchend', endTouch);
-        window.addEventListener('touchcancel', endTouch);
+    // 隨機生成訂單
+    generateOrders(count) {
+        for(let i=0; i<count; i++) {
+            const pickup = LOCATIONS[Math.floor(Math.random()*LOCATIONS.length)];
+            let target = LOCATIONS[Math.floor(Math.random()*LOCATIONS.length)];
+            while(target.name === pickup.name) target = LOCATIONS[Math.floor(Math.random()*LOCATIONS.length)];
 
-        function updateJoystick(touch) {
-            const rect = joystickZone.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-
-            let deltaX = touch.clientX - centerX;
-            let deltaY = touch.clientY - centerY;
-            const distance = Math.hypot(deltaX, deltaY);
-
-            if (distance > maxRadius) {
-                deltaX = (deltaX / distance) * maxRadius;
-                deltaY = (deltaY / distance) * maxRadius;
-            }
-
-            joystickKnob.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+            const item = ITEM_TYPES[Math.floor(Math.random()*ITEM_TYPES.length)];
             
-            // 歸一化輸出 (-1 到 1)
-            inputX = deltaX / maxRadius;
-            inputZ = deltaY / maxRadius;
+            // 基礎價格計算 (距離 + 重量)
+            const isCrossHarbor = pickup.area !== target.area;
+            let basePay = Math.floor(35 + (isCrossHarbor ? 30 : 10) + item.weight * 4 + Math.random() * 20);
+
+            this.availableOrders.push({
+                id: Math.random().toString(36).substr(2, 9),
+                pickup,
+                target,
+                item,
+                pay: basePay,
+                timeLimit: Math.floor(60 + Math.random() * 40) // 限時分鐘
+            });
         }
+    }
 
-        // --- 6. 遊戲主循環 ---
-        function updateUI() {
-            document.getElementById('score').innerText = score;
-            document.getElementById('carrying').innerText = hasPackage ? "1 / 1" : "0 / 1";
-            const statusText = document.getElementById('status-text');
-            if (hasPackage) {
-                statusText.innerText = "請快遞至【紅色送貨區】";
-                statusText.style.color = "#4caf50";
-            } else {
-                statusText.innerText = "前往【藍色貨倉】取貨";
-                statusText.style.color = "#ff9800";
-            }
-        }
+    updateUI() {
+        document.getElementById('p-name').innerText = `👤 ${this.player.name} (${this.player.age}歲)`;
+        document.getElementById('p-home').innerText = this.player.home;
+        document.getElementById('p-money').innerText = `$${this.player.money}`;
+        document.getElementById('p-loc').innerText = this.currentLocation.name || this.currentLocation;
+        
+        let equipText = "基本背包 (8kg上限)";
+        if(this.hasBag && this.hasCart) equipText = "保溫袋 + 手推車 (23kg上限)";
+        else if(this.hasBag) equipText = "保溫袋 (8kg上限)";
+        else if(this.hasCart) equipText = "手推車 (23kg上限)";
+        document.getElementById('p-equip').innerText = equipText;
 
-        function animate() {
-            requestAnimationFrame(animate);
+        // 時間與狀態
+        const hrs = Math.floor(this.currentTime / 60).toString().padStart(2, '0');
+        const mins = (this.currentTime % 60).toString().padStart(2, '0');
+        document.getElementById('txt-time').innerText = `${hrs}:${mins}`;
+        
+        const timePercent = Math.min(100, ((this.currentTime - 540) / (13 * 60)) * 100);
+        document.getElementById('bar-time').style.width = `${timePercent}%`;
+        document.getElementById('bar-fatigue').style.width = `${this.fatigue}%`;
+        document.getElementById('txt-fatigue').innerText = `${Math.floor(this.fatigue)}%`;
+        document.getElementById('bar-hunger').style.width = `${this.hunger}%`;
+        document.getElementById('txt-hunger').innerText = `${Math.floor(this.hunger)}%`;
 
-            // 計算輸入向量 (結合鍵盤與手機搖桿)
-            let moveX = inputX;
-            let moveZ = inputZ;
+        document.getElementById('btn-bag').disabled = this.hasBag || this.player.money < 80;
+        document.getElementById('btn-cart').disabled = this.hasCart || this.player.money < 200;
 
-            if (keys['w'] || keys['arrowup']) moveZ = -1;
-            if (keys['s'] || keys['arrowdown']) moveZ = 1;
-            if (keys['a'] || keys['arrowleft']) moveX = -1;
-            if (keys['d'] || keys['arrowright']) moveX = 1;
-
-            const currentSpeed = hasPackage ? baseSpeed * 0.75 : baseSpeed;
-
-            if (Math.abs(moveX) > 0.1 || Math.abs(moveZ) > 0.1) {
-                const len = Math.hypot(moveX, moveZ);
-                const normX = moveX / len;
-                const normZ = moveZ / len;
-
-                playerGroup.position.x += normX * currentSpeed;
-                playerGroup.position.z += normZ * currentSpeed;
-
-                const angle = Math.atan2(normX, normZ);
-                playerGroup.rotation.y = angle;
-            }
-
-            // 相機跟隨
-            camera.position.x = playerGroup.position.x;
-            camera.position.z = playerGroup.position.z + 25;
-            camera.lookAt(playerGroup.position);
-
-            // 送貨與取貨距離判定
-            if (!hasPackage && playerGroup.position.distanceTo(warehouseGroup.position) < 3.0) {
-                hasPackage = true;
-                packageMesh.visible = true;
-                updateUI();
-            }
-
-            if (hasPackage && playerGroup.position.distanceTo(targetGroup.position) < 3.0) {
-                hasPackage = false;
-                packageMesh.visible = false;
-                score += 100;
-                targetGroup.position.x = (Math.random() - 0.5) * 60;
-                targetGroup.position.z = (Math.random() - 0.5) * 60;
-                updateUI();
-            }
-
-            renderer.render(scene, camera);
-        }
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        // 渲染訂單列表
+        const listEl = document.getElementById('orders-list');
+        listEl.innerHTML = "";
+        
+        this.availableOrders.forEach((ord, idx) => {
+            const card = document.createElement('div');
+            card.className = "order-card";
+            card.innerHTML = `
+                <div class="order-title">
+                    <span>${ord.item.isBlind ? "❓ 盲盒包裹" : ord.item.name} (${ord.item.weight}kg)</span>
+                    <span style="color:#4caf50;">$${ord.pay} 港幣</span>
+                </div>
+                <div style="font-size:12px; margin:4px 0; color:#ccc;">
+                    📍 起點: ${ord.pickup.name} ➔ 🏁 終點: ${ord.target.name}<br>
+                    地形提示: ${ord.target.terrain} (下車額外步行 ${ord.target.extraWalkTime} 分鐘)
+                </div>
+                <button style="width:100%; margin-top:4px;" onclick="game.acceptOrder(${idx})">接單並前往取貨</button>
+            `;
+            listEl.appendChild(card);
         });
 
-        animate();
-    </script>
+        // 檢查遊戲結束條件
+        if(this.fatigue >= 100) this.endGame("疲勞過度在街頭暈倒！");
+        if(this.currentTime >= 22 * 60) this.endGame("時間已到 22:00，強制收工");
+    }
+
+    // 接單
+    acceptOrder(idx) {
+        const order = this.availableOrders[idx];
+        
+        // 檢查裝備與負重
+        const maxW = this.player.maxWeight + (this.hasCart ? 15 : 0);
+        if(order.item.weight > maxW) {
+            alert(`你拿不動！該貨物 ${order.item.weight}kg，超過你目前最大負重 ${maxW}kg (建議購買手推車)。`);
+            return;
+        }
+
+        this.selectedOrder = order;
+        this.availableOrders.splice(idx, 1);
+        
+        // 開啟交通選擇彈窗
+        this.showTransportModal(order.pickup, "取貨");
+    }
+
+    // 顯示擬真交通選項
+    showTransportModal(destination, stage) {
+        const modal = document.getElementById('modal-transport');
+        const info = document.getElementById('transport-info');
+        const optionsEl = document.getElementById('transport-options');
+        
+        info.innerText = `從 【${this.currentLocation.name || this.currentLocation}】 前往 【${destination.name}】 (${stage})`;
+        optionsEl.innerHTML = "";
+
+        // 計算交通路程
+        const isCrossHarbor = (this.currentLocation.area && destination.area) && (this.currentLocation.area !== destination.area);
+        
+        const transports = [
+            { name: "🚶 徒步全步行", cost: 0, time: 35 + destination.extraWalkTime, fatigue: 15 + destination.extraFatigue },
+            { name: "🚇 港鐵 MTR", cost: isCrossHarbor ? 14.5 : 6.5, time: 18 + destination.extraWalkTime, fatigue: 4 + destination.extraFatigue },
+            { name: "🚌 九巴/城巴", cost: isCrossHarbor ? 11.2 : 5.8, time: 25 + destination.extraWalkTime, fatigue: 5 + destination.extraFatigue },
+            { name: "🚐 綠色小巴", cost: 7.5, time: 20 + destination.extraWalkTime, fatigue: 6 + destination.extraFatigue, disabled: this.hasCart },
+            { name: "🚋 電車/輕鐵", cost: 3.0, time: 40 + destination.extraWalkTime, fatigue: 7 + destination.extraFatigue }
+        ];
+
+        transports.forEach(t => {
+            const opt = document.createElement('div');
+            opt.className = "transport-option";
+            opt.innerHTML = `
+                <div>
+                    <strong>${t.name}</strong> ${t.disabled ? '<span style="color:red;">(推車無法上車)</span>' : ''}<br>
+                    <small>費用: $${t.cost} | 時間: ~${t.time}分鐘 | 疲勞: +${t.fatigue}%</small>
+                </div>
+                <button ${t.disabled || this.player.money < t.cost ? 'disabled' : ''} onclick="game.executeTravel('${stage}', ${t.cost}, ${t.time}, ${t.fatigue}, '${destination.name}')">選擇</button>
+            `;
+            optionsEl.appendChild(opt);
+        });
+
+        modal.style.display = "flex";
+    }
+
+    // 執行移動與送貨
+    executeTravel(stage, cost, time, fatigue, newLocName) {
+        document.getElementById('modal-transport').style.display = "none";
+
+        this.player.money -= cost;
+        this.expensesTrans += cost;
+        this.currentTime += time;
+        this.fatigue += fatigue;
+        this.hunger += time * 0.15;
+        this.currentLocation = LOCATIONS.find(l => l.name === newLocName) || newLocName;
+
+        if(stage === "取貨") {
+            alert(`你順利到達【${newLocName}】拿到貨物！現在選擇交通工具送去目的地...`);
+            this.showTransportModal(this.selectedOrder.target, "送貨");
+        } else if(stage === "送貨") {
+            this.completeDelivery();
+        }
+
+        this.updateUI();
+    }
+
+    // 完成訂單與檢測壞貨/超時
+    completeDelivery() {
+        const ord = this.selectedOrder;
+        let finalPay = ord.pay;
+        let isDamaged = false;
+
+        // 檢查保溫袋
+        if(ord.item.needBag && !this.hasBag) {
+            isDamaged = true;
+            alert(`⚠️ 糟糕！【${ord.item.name}】因沒有保溫袋保護，在送達時壞掉了！被扣除賠償款 $${ord.item.penalty}`);
+            this.player.money -= ord.item.penalty;
+            this.penalties += ord.item.penalty;
+            finalPay = 0;
+        }
+
+        if(!isDamaged) {
+            // 隨機獲得小費
+            const getTip = Math.random() < 0.35;
+            const tipAmt = getTip ? Math.floor(10 + Math.random()*15) : 0;
+            
+            this.player.money += finalPay + tipAmt;
+            this.earnings += finalPay;
+            this.tips += tipAmt;
+            this.completedOrders++;
+
+            alert(`✅ 成功送達！獲得運費 $${finalPay} ${tipAmt > 0 ? ` + 顧客滿意小費 $${tipAmt}！` : ''}`);
+        }
+
+        // 補充新單
+        this.generateOrders(1);
+        this.updateUI();
+    }
+
+    // 休息
+    rest() {
+        this.currentTime += 30;
+        this.fatigue = Math.max(0, this.fatigue - 25);
+        this.hunger += 5;
+        alert("你在公園長椅休息了 30 分鐘，體力稍微恢復了！");
+        this.updateUI();
+    }
+
+    // 食飯
+    eat() {
+        if(this.player.money < 55) {
+            alert("你連 $55 港幣的茶餐廳碟頭飯都買不起！快去送貨吧！");
+            return;
+        }
+        this.player.money -= 55;
+        this.expensesFood += 55;
+        this.currentTime += 30;
+        this.hunger = Math.max(0, this.hunger - 50);
+        this.fatigue = Math.max(0, this.fatigue - 10);
+        alert("你在茶餐廳食咗熱辣辣的叉燒飯配凍檸茶，飢餓度大減！");
+        this.updateUI();
+    }
+
+    // 購買裝備
+    buyItem(type) {
+        if(type === 'bag' && this.player.money >= 80) {
+            this.player.money -= 80;
+            this.expensesEquip += 80;
+            this.hasBag = true;
+            alert("你購買了專業外賣保溫袋！現在可以接蛋糕與生鮮冰品訂單了！");
+        } else if(type === 'cart' && this.player.money >= 200) {
+            this.player.money -= 200;
+            this.expensesEquip += 200;
+            this.hasCart = true;
+            alert("你購買了便攜手推車！負重上限大幅提升！");
+        }
+        this.updateUI();
+    }
+
+    // 結束遊戲與總結報告
+    endGame(reason) {
+        const netProfit = this.earnings + this.tips - this.expensesTrans - this.expensesFood - this.expensesEquip - this.penalties;
+        
+        let title = "初出茅廬步兵";
+        if(netProfit > 400) title = "香港過海鐵腿王 🏆";
+        else if(netProfit > 200) title = "划算接單大師 🎒";
+        else if(netProfit < 0) title = "破產外賣員 💸";
+
+        const reportHtml = `
+            <p style="color:#ff9800; text-align:center;"><strong>結束原因: ${reason}</strong></p>
+            <div class="report-row"><span>主角稱號</span><strong style="color:var(--accent);">${title}</strong></div>
+            <div class="report-row"><span>完成訂單數</span><strong>${this.completedOrders} 單</strong></div>
+            <div class="report-row"><span>送貨運費總收入</span><span style="color:#4caf50;">+$${this.earnings}</span></div>
+            <div class="report-row"><span>顧客小費總額</span><span style="color:#4caf50;">+$${this.tips}</span></div>
+            <div class="report-row"><span>交通費支出</span><span style="color:#e53935;">-$${this.expensesTrans}</span></div>
+            <div class="report-row"><span>伙食費支出</span><span style="color:#e53935;">-$${this.expensesFood}</span></div>
+            <div class="report-row"><span>裝備投資費</span><span style="color:#e53935;">-$${this.expensesEquip}</span></div>
+            <div class="report-row"><span>壞貨/賠償罰款</span><span style="color:#e53935;">-$${this.penalties}</span></div>
+            <hr style="border-color:#444;">
+            <div class="report-row" font-size:16px;">
+                <span>今日淨利潤</span>
+                <strong style="font-size:18px; color:${netProfit>=0 ? '#4caf50' : '#e53935'};">$${netProfit} 港幣</strong>
+            </div>
+        `;
+
+        document.getElementById('report-details').innerHTML = reportHtml;
+        document.getElementById('modal-report').style.display = "flex";
+    }
+}
+
+// 啟動遊戲
+const game = new Game();
+</script>
 </body>
 </html>
