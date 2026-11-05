@@ -305,8 +305,8 @@ class Game {
         document.getElementById('bar-hunger').style.width = `${this.hunger}%`;
         document.getElementById('txt-hunger').innerText = `${Math.floor(this.hunger)}%`;
 
-        document.getElementById('btn-bag').disabled = this.hasBag || this.player.money < 80;
-        document.getElementById('btn-cart').disabled = this.hasCart || this.player.money < 200;
+        document.getElementById('btn-bag').disabled = this.hasBag || this.player.money < 20;
+        document.getElementById('btn-cart').disabled = this.hasCart || this.player.money < 120;
 
         // 依據距離排序單池
         this.sortOrdersByDistance();
@@ -416,6 +416,18 @@ class Game {
         const isExactSameLocation = curLocObj && (curLocObj.name === destination.name);
         const isSameArea = curLocObj && (curLocObj.area === destination.area);
         const isCrossHarbor = curLocObj && (curLocObj.area !== destination.area);
+        const isHKIToHKI = curLocObj && destination && curLocObj.area.includes("港島") && destination.area.includes("港島");
+        const poorMTRAccessLocations = [
+            "半山花園道豪宅",
+            "赤柱大街",
+            "數碼港三期",
+            "西貢市中心碼頭",
+            "山頂廣場",
+            "香港科學園"
+        ];
+
+        const extraMTRTransferTime = hasPoorMTRAccess ? 25 : 0;
+        const extraMTRTransferCost = hasPoorMTRAccess ? 5 : 0;
 
         info.innerHTML = `
             <div style = "background:#f0f0f2; padding 8px 10px; border-radius:8px; margin-bottom:12px; border:1px solid #e0e0e0; color:#333;">
@@ -488,6 +500,22 @@ class Game {
                 </div>
             `;
         }
+
+        if (poorMTRAccessLocations.includes(destination.name)) {
+            info.innerHTML += `
+                <div style="
+                    background:#fff8e1;
+                    color:#e65100;
+                    padding:8px;
+                    border-radius:8px;
+                    margin-top:8px;
+                    font-size:12px;
+                    font-weight:bold;">
+                    🚇 此目的地沒有直達港鐵站，需要額外步行/轉乘小巴/巴士約25分鐘+$5 車費。
+                </div>
+            `;
+        }
+
         optionsEl.innerHTML = "";
 
         // 啟動 20 秒倒數
@@ -523,8 +551,8 @@ class Game {
                 },
                 {
                     name: "🚇 港鐵 MTR",
-                    cost: isCrossHarbor ? 14.5 : 6.5,
-                    time: mtrBaseTime + extraWalkTime + realisticDelay,
+                    cost: isCrossHarbor ? 14.5 : 6.5 + extraMTRTransferCost,
+                    time: mtrBaseTime + extraWalkTime + realisticDelay + extraMTRTransferTime,
                     fatigue: 4 + extraFatigueVal
                 },
                 {
@@ -534,17 +562,19 @@ class Game {
                     fatigue: 5 + extraFatigueVal
                 },
                 {
-                    name: "🚐 綠色小巴",
+                    name: "🚐 Van仔",
                     cost: 7.5,
                     time: (isSameArea ? 12 : 20) + extraWalkTime + realisticDelay,
                     fatigue: 6 + extraFatigueVal,
                     disabled: this.hasCart
                 },
                 {
-                    name: "🚋 電車 / 輕鐵",
-                    cost: 3.0,
+                    name: "🚋 電車",
+                    cost: 3.3,
                     time: (isSameArea ? 20 : 40) + extraWalkTime + realisticDelay,
-                    fatigue: 7 + extraFatigueVal
+                    fatigue: 7 + extraFatigueVal,
+                    disabled: !isHKIToHKI,
+                    disabledReason: "只限港島區行駛"
                 },
                 {
                     name: "🚕 的士 Taxi",
@@ -561,7 +591,7 @@ class Game {
             opt.className = "transport-option";
             opt.innerHTML = `
                 <div>
-                    <strong>${t.name}</strong> ${t.disabled ? '<span style="color:red;">(推車無法上車)</span>' : ''}<br>
+                    <strong>${t.name}</strong>${t.disabled ? `<span style="color:red;">(${t.disabledReason || "推車無法上車"})</span>`: ''}
                     <small>車費: $${t.cost} | 時間: ~${t.time}分鐘 | 疲勞: +${t.fatigue}%</small>
                 </div>
                 <button ${t.disabled || this.player.money < t.cost ? 'disabled' : ''} onclick="game.executeTravel('${stage}', ${t.cost}, ${t.time}, ${t.fatigue}, '${destination.name}')">選擇</button>
@@ -575,7 +605,7 @@ class Game {
             btn.style.background = "var(--danger)";
             btn.style.color = "white";
         }else{
-            btn.innerText = "放棄此單";
+            btn.innerText = "取消";
             btn.style.background = "#e0e0e0";
             btn.style.color = "#333";
         }
@@ -745,6 +775,11 @@ class Game {
         this.currentDeliveryTransCost += cost;
         this.currentDeliveryTimeSpent += time;
 
+        if(!this.currentDeliveryFatigue)
+            this.currentDeliveryFatigue = 0;
+
+        this.currentDeliveryFatigue += fatigue;
+
         this.currentLocation = LOCATIONS.find(l => l.name === newLocName) || newLocName;
 
         if(stage === "取貨") {
@@ -794,7 +829,8 @@ class Game {
                 itemName: ord.item.name,
                 earned: totalEarned,
                 transCost: this.currentDeliveryTransCost,
-                timeSpent: this.currentDeliveryTimeSpent
+                timeSpent: this.currentDeliveryTimeSpent,
+                fatigueAdded: this.currentDeliveryFatigue || 0,
             });
 
             alert(`✅ 成功送達【${ord.target.name}】！獲得運費 $${finalPay} ${tipAmt > 0 ? ` + 顧客滿意小費 $${tipAmt}！` : ''}`);
@@ -830,14 +866,14 @@ class Game {
 
     // 買東西只扣錢與更新裝備，不刷新訂單池
     buyItem(type) {
-        if(type === 'bag' && this.player.money >= 80) {
-            this.player.money -= 80;
-            this.expensesEquip += 80;
+        if(type === 'bag' && this.player.money >= 20) {
+            this.player.money -= 20;
+            this.expensesEquip += 20;
             this.hasBag = true;
             alert("你解鎖了專業外賣保溫袋！現在可以送蛋糕與生鮮冰品了！");
-        } else if(type === 'cart' && this.player.money >= 200) {
-            this.player.money -= 200;
-            this.expensesEquip += 200;
+        } else if(type === 'cart' && this.player.money >= 120) {
+            this.player.money -= 120;
+            this.expensesEquip += 120;
             this.hasCart = true;
             alert("你購買了便攜手推車！負重上限提升至 23kg！");
         }
@@ -871,6 +907,34 @@ class Game {
         else if(netProfit > 200) title = "精明接單大師 🎒";
         else if(netProfit < 0) title = "破產外賣員 💸";
 
+
+        //Get best and worst order for summary tab
+        let bestOrder = null;
+        let worstOrder = null;
+
+        if(this.historyLog.length > 0){
+
+            this.historyLog.forEach(log => {
+
+                const netIncome =
+                    log.earned - log.transCost;
+
+                const score =
+                    netIncome / Math.max(log.timeSpent, 1);
+
+                log.score = score;
+
+                if(!bestOrder || score > bestOrder.score){
+                    bestOrder = log;
+                }
+
+                if(!worstOrder || score < worstOrder.score){
+                    worstOrder = log;
+                }
+
+            });
+        }
+
         const reportHtml = `
             <p style="color:var(--primary); text-align:center;"><strong>結束原因: ${reason}</strong></p>
             <div class="report-row"><span>主角稱號</span><strong style="color:var(--primary);">${title}</strong></div>
@@ -893,8 +957,33 @@ class Game {
             </div>
         `;
 
-        document.getElementById('report-details').innerHTML = reportHtml;
+        let performanceHtml = "";
+        if(bestOrder){
+            performanceHtml = `<hr style="margin-top:15px;">
+                <h3 style="color:#2e7d32;">📊 今日送貨表現分析 </h3>
+
+                <div class="card" style="margin-bottom:10px; border-left:5px solid #2e7d32;">
+                    <b>🏆 最佳一單</b><br>
+                    ${bestOrder.pickup}➜${bestOrder.target}<br>
+                    淨收入：$${(bestOrder.earned - bestOrder.transCost).toFixed(1)}<br>
+                    耗時：${bestOrder.timeSpent}分鐘<br>
+                    疲勞增加：+${bestOrder.fatigueAdded.toFixed(0)}%<br>
+                    效率：$${bestOrder.score.toFixed(2)}/分鐘
+                </div>
+                <div class="card" style=" border-left:5px solid #c62828;">
+                    <b>💀 最差一單</b><br>
+                    ${worstOrder.pickup}➜${worstOrder.target}<br>
+                    淨收入：$${(worstOrder.earned - worstOrder.transCost).toFixed(1)}<br>
+                    耗時：${worstOrder.timeSpent}分鐘<br>
+                    疲勞增加：+${worstOrder.fatigueAdded.toFixed(0)}%<br>
+                    效率：$${worstOrder.score.toFixed(2)}/分鐘
+                </div>
+            `;
+        }
+        
+        document.getElementById('report-details').innerHTML =  reportHtml + performanceHtml;
         document.getElementById('modal-report').style.display = "flex";
+        
     }
 
     restartNewGame() {
@@ -968,6 +1057,7 @@ class Game {
             localStorage.removeItem('hk_courier_saved_state');
         }
     }
+
 }
 
 // 啟動遊戲
