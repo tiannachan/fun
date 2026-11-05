@@ -425,7 +425,7 @@ class Game {
             "山頂廣場",
             "香港科學園"
         ];
-
+        const hasPoorMTRAccess = poorMTRAccessLocations.includes(curLocName) || poorMTRAccessLocations.includes(destination.name);
         const extraMTRTransferTime = hasPoorMTRAccess ? 25 : 0;
         const extraMTRTransferCost = hasPoorMTRAccess ? 5 : 0;
 
@@ -551,7 +551,7 @@ class Game {
                 },
                 {
                     name: "🚇 港鐵 MTR",
-                    cost: isCrossHarbor ? 14.5 : 6.5 + extraMTRTransferCost,
+                    cost: (isCrossHarbor ? 14.5 : 6.5) + extraMTRTransferCost,
                     time: mtrBaseTime + extraWalkTime + realisticDelay + extraMTRTransferTime,
                     fatigue: 4 + extraFatigueVal
                 },
