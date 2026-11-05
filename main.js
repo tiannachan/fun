@@ -369,15 +369,25 @@ class Game {
     }
 
     // 20 秒倒數控制
+        // 20 秒倒數控制（含動態進度條動畫）
     startTransportCountdown() {
         if(this.timerId) clearInterval(this.timerId);
         let timeLeft = 20;
         const timerEl = document.getElementById('countdown-timer');
+        const timerBarEl = document.getElementById('timer-bar-fill');
+        
         timerEl.innerText = `⏱️ ${timeLeft}s`;
+        if (timerBarEl) timerBarEl.style.width = `100%`;
 
         this.timerId = setInterval(() => {
             timeLeft--;
             timerEl.innerText = `⏱️ ${timeLeft}s`;
+            
+            // 計算並更新進度條寬度百分比
+            if (timerBarEl) {
+                const percentage = (timeLeft / 20) * 100;
+                timerBarEl.style.width = `${percentage}%`;
+            }
 
             if (timeLeft <= 0) {
                 clearInterval(this.timerId);
