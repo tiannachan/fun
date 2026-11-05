@@ -32,7 +32,6 @@ const LOCATIONS = [
     { name: "太古城中心", area: "港島", terrain: "中產住宅區", extraWalk: 3, extraFatigue: 2 }
 ];
 
-// 貨物種類
 const ITEM_TYPES = [
     { name: "📄 緊急合約文件", weight: 0.5, needBag: false, needCart: false, penalty: 80, isBlind: false },
     { name: "💊 急救藥物", weight: 0.3, needBag: false, needCart: false, penalty: 110, isBlind: false },
@@ -44,7 +43,6 @@ const ITEM_TYPES = [
     { name: "🌸 高級鮮花花束", weight: 1.2, needBag: false, needCart: false, penalty: 90, isBlind: false }
 ];
 
-// 多樣化背景故事與個人錢包
 const BACKGROUND_PROFILES = [
     { title: "體驗生活的富二代", walletMin: 1200, walletMax: 2500, story: "屋企有幾間鋪，純粹屋企坐得太悶，出嚟跑單當減肥做運動。" },
     { title: "投資失利的前Banker", walletMin: 200, walletMax: 600, story: "炒幣槓桿爆倉輸光積蓄，手頭得返幾百蚊，靠步兵重新起家。" },
@@ -62,6 +60,10 @@ class Game {
         this.highScore = parseInt(localStorage.getItem('hk_courier_highscore')) || 0;
         document.getElementById('high-score-display').innerText = `$${this.highScore} 港幣`;
         
+        this.timerId = null;
+        this.poolInterval = null;
+        this.historyLog = [];
+
         if(localStorage.getItem('hk_courier_saved_state')) {
             this.loadState();
         }
@@ -111,13 +113,27 @@ class Game {
         this.penalties = 0;
         this.tips = 0;
         this.completedOrders = 0;
+        this.historyLog = [];
 
         this.availableOrders = [];
         this.currentLocation = LOCATIONS.find(l => l.area === this.player.home) || LOCATIONS[0];
 
         this.generateOrders(5);
+        this.startDynamicPool();
         this.saveState();
         this.updateUI();
+    }
+
+    // 動態訂單池：每 15 秒更新一張單（舊單移除，新單補入）
+    startDynamicPool() {
+        if(this.poolInterval) clearInterval(this.poolInterval);
+        this.poolInterval = setInterval(() => {
+            if (this.availableOrders.length >= 6) {
+                this.availableOrders.shift(); // 移除最舊的單
+            }
+            this.generateOrders(1);
+            this.updateUI();
+        }, 15000);
     }
 
     generateOrders(count) {
@@ -128,7 +144,6 @@ class Game {
 
             const item = ITEM_TYPES[Math.floor(Math.random()*ITEM_TYPES.length)];
             const isCrossHarbor = pickup.area !== target.area;
-            
             let basePay = Math.floor(35 + (isCrossHarbor ? 35 : 12) + item.weight * 3.5 + Math.random() * 25);
 
             this.availableOrders.push({
@@ -141,11 +156,30 @@ class Game {
         }
     }
 
+    // 依距離排序算法 (主角當前位置優先 -> 同區優先 -> 跨區最後)
+    sortOrdersByDistance() {
+        const curLoc = typeof this.currentLocation === 'string' 
+            ? LOCATIONS.find(l => l.name === this.currentLocation) || LOCATIONS[0] 
+            : this.currentLocation;
+
+        this.availableOrders.sort((a, b) => {
+            const getScore = (ord) => {
+                if (ord.pickup.name === curLoc.name) return 0; // 原地起點第一優先
+                if (ord.pickup.area === curLoc.area) return 1; // 同區域第二優先
+                return 2; // 跨區排最後
+            };
+            return getScore(a) - getScore(b);
+        });
+    }
+
     updateUI() {
+        const curLocObj = typeof this.currentLocation === 'string' ? LOCATIONS.find(l => l.name === this.currentLocation) : this.currentLocation;
+        const curLocName = curLocObj ? curLocObj.name : this.currentLocation;
+
         document.getElementById('p-name').innerText = `👤 ${this.player.name} (${this.player.title})`;
         document.getElementById('p-home').innerText = this.player.home;
         document.getElementById('p-money').innerText = `$${this.player.money}`;
-        document.getElementById('p-loc').innerText = this.currentLocation.name || this.currentLocation;
+        document.getElementById('p-loc').innerText = curLocName;
 
         let equipText = "基本背包 (8kg)";
         if(this.hasBag && this.hasCart) equipText = "保溫袋 + 手推車 (23kg)";
@@ -167,43 +201,90 @@ class Game {
         document.getElementById('btn-bag').disabled = this.hasBag || this.player.money < 80;
         document.getElementById('btn-cart').disabled = this.hasCart || this.player.money < 200;
 
+        // 依據距離排序單池
+        this.sortOrdersByDistance();
+
+        // 渲染單池
         const listEl = document.getElementById('orders-list');
         listEl.innerHTML = "";
 
-        this.availableOrders.forEach((ord, idx) => {
+        this.availableOrders.forEach((ord) => {
+            const isHere = ord.pickup.name === curLocName;
+            const isSameZone = ord.pickup.area === (curLocObj ? curLocObj.area : '');
+
             const card = document.createElement('div');
             card.className = "order-card";
             card.innerHTML = `
                 <div class="route-header">
                     <span class="route-path">📍 ${ord.pickup.name} ➔ 🏁 ${ord.target.name}</span>
-                    <span style="color:#4caf50;">+$${ord.pay}</span>
+                    <span style="color:var(--success); font-weight:bold;">+$${ord.pay}</span>
                 </div>
-                <div style="font-size:12px; color:#aaa; margin:4px 0;">
+                <div style="font-size:12px; color:var(--text-sub); margin:4px 0;">
+                    ${isHere ? '<b style="color:var(--primary);">[就在此處!]</b> ' : (isSameZone ? '<b style="color:#0288d1;">[同區域]</b> ' : '')}
                     地形: <b>${ord.target.terrain}</b> (下車步行 ${ord.target.extraWalk} 分鐘)
                 </div>
                 <div class="item-tag">
                     📦 物品: ${ord.item.isBlind ? "❓ 神秘盲盒" : ord.item.name} (${ord.item.weight}kg)
                 </div>
-                <button style="width:100%; margin-top:8px;" onclick="game.acceptOrder(${idx})">接單並前往取貨</button>
+                <button style="width:100%; margin-top:8px;" onclick="game.acceptOrder('${ord.id}')">接單並前往取貨</button>
             `;
             listEl.appendChild(card);
         });
+
+        // 渲染今日歷史紀錄 Block
+        this.renderHistoryLog();
 
         if(this.fatigue >= 100) this.endGame("疲勞過度在街頭暈倒被送院！");
         if(this.currentTime >= 22 * 60) this.endGame("時間到達 22:00 晚間，強制收工");
     }
 
-    acceptOrder(idx) {
-        const order = this.availableOrders[idx];
+    renderHistoryLog() {
+        const logContainer = document.getElementById('history-log-list');
+        document.getElementById('log-count').innerText = this.historyLog.length;
+
+        if (this.historyLog.length === 0) {
+            logContainer.innerHTML = `<div style="color:var(--text-sub); text-align:center; font-size:12px; padding:10px;">今天還沒有完成任何訂單</div>`;
+            return;
+        }
+
+        logContainer.innerHTML = "";
+        this.historyLog.slice().reverse().forEach(log => {
+            const item = document.createElement('div');
+            item.className = "history-item";
+            item.innerHTML = `
+                <div class="history-item-header">
+                    <span>${log.pickup} ➔ ${log.target}</span>
+                    <span style="color:var(--success);">+${log.earned}</span>
+                </div>
+                <div class="history-item-details">
+                    <span>📦 ${log.itemName}</span>
+                    <span>🚌 車費: $${log.transCost} | ⏱️ 耗時: ${log.timeSpent}分</span>
+                </div>
+            `;
+            logContainer.appendChild(item);
+        });
+    }
+
+    // 依 ID 尋找單，修復按鈕無反應問題
+    acceptOrder(orderId) {
+        const order = this.availableOrders.find(o => o.id === orderId);
+        if(!order) {
+            alert("⚠️ 該訂單已被其他外賣員搶走了！");
+            this.updateUI();
+            return;
+        }
+
         const maxW = this.player.maxWeight + (this.hasCart ? 15 : 0);
-        
         if(order.item.weight > maxW) {
             alert(`⚠️ 拿不動！物品重 ${order.item.weight}kg，超過你的最大負重 ${maxW}kg (可購買手推車提升)。`);
             return;
         }
 
         this.selectedOrder = order;
-        this.availableOrders.splice(idx, 1);
+        this.currentDeliveryTransCost = 0;
+        this.currentDeliveryTimeSpent = 0;
+        
+        // 觸發 20 秒倒數計時
         this.showTransportModal(order.pickup, "取貨");
     }
 
@@ -213,35 +294,21 @@ class Game {
         const optionsEl = document.getElementById('transport-options');
         
         const curLocObj = typeof this.currentLocation === 'string' ? LOCATIONS.find(l => l.name === this.currentLocation) : this.currentLocation;
-        const curLocName = curLocObj ? curLocObj.name : "未知地點";
+        const curLocName = curLocObj ? curLocObj.name : "目前位置";
         info.innerText = `從 【${curLocName}】 前往 【${destination.name}】 (${stage})`;
         optionsEl.innerHTML = "";
 
-        // --- 動態距離與時間算法計算 ---
+        // 啟動 20 秒倒數
+        this.startTransportCountdown();
+
         const isExactSameLocation = curLocObj && (curLocObj.name === destination.name);
         const isSameArea = curLocObj && (curLocObj.area === destination.area);
         const isCrossHarbor = curLocObj && (curLocObj.area !== destination.area);
 
-        let walkBaseTime = 30;
-        let mtrBaseTime = 18;
-        let busBaseTime = 25;
+        let walkBaseTime = isExactSameLocation ? 2 : (isSameArea ? 15 : 38);
+        let mtrBaseTime = isExactSameLocation ? 2 : (isSameArea ? 10 : 18);
+        let busBaseTime = isExactSameLocation ? 2 : (isSameArea ? 12 : 25);
 
-        if (isExactSameLocation) {
-            // 在同一個地點：幾乎不用移動，只需幾分鐘拿貨
-            walkBaseTime = 2;
-            mtrBaseTime = 2;
-            busBaseTime = 2;
-        } else if (isSameArea) {
-            // 同一分區內（如旺角走到深水埗）：12 - 18 分鐘
-            walkBaseTime = 15;
-            mtrBaseTime = 10;
-            busBaseTime = 12;
-        } else {
-            // 跨區（如九龍到新界/港島）：較遠
-            walkBaseTime = 38;
-        }
-
-        // 當在同一個地點時，不計入額外地形爬山懲罰（因為你已經到了）
         const extraWalkTime = isExactSameLocation ? 0 : destination.extraWalk;
         const extraFatigueVal = isExactSameLocation ? 0 : destination.extraFatigue;
 
@@ -278,7 +345,7 @@ class Game {
                 fatigue: 7 + extraFatigueVal 
             },
             { 
-                name: "🚕 紅色/綠色 的士 Taxi", 
+                name: "🚕 的士 Taxi", 
                 cost: isExactSameLocation ? 0 : (isCrossHarbor ? 95.0 : 45.0), 
                 time: isExactSameLocation ? 2 : 10, 
                 fatigue: 1 
@@ -301,7 +368,34 @@ class Game {
         modal.style.display = "flex";
     }
 
+    // 20 秒倒數控制
+    startTransportCountdown() {
+        if(this.timerId) clearInterval(this.timerId);
+        let timeLeft = 20;
+        const timerEl = document.getElementById('countdown-timer');
+        timerEl.innerText = `⏱️ ${timeLeft}s`;
+
+        this.timerId = setInterval(() => {
+            timeLeft--;
+            timerEl.innerText = `⏱️ ${timeLeft}s`;
+
+            if (timeLeft <= 0) {
+                clearInterval(this.timerId);
+                this.cancelTransportSelection('逾時未選擇交通，訂單已失效！');
+            }
+        }, 1000);
+    }
+
+    cancelTransportSelection(msg) {
+        if(this.timerId) clearInterval(this.timerId);
+        document.getElementById('modal-transport').style.display = "none";
+        alert(`⚠️ ${msg}`);
+        this.selectedOrder = null;
+        this.updateUI();
+    }
+
     executeTravel(stage, cost, time, fatigue, newLocName) {
+        if(this.timerId) clearInterval(this.timerId);
         document.getElementById('modal-transport').style.display = "none";
 
         this.player.money -= cost;
@@ -309,9 +403,17 @@ class Game {
         this.currentTime += time;
         this.fatigue += fatigue;
         this.hunger += time * 0.12;
+
+        this.currentDeliveryTransCost += cost;
+        this.currentDeliveryTimeSpent += time;
+
         this.currentLocation = LOCATIONS.find(l => l.name === newLocName) || newLocName;
 
         if(stage === "取貨") {
+            // 從可用訂單池中移除此單
+            const orderIndex = this.availableOrders.findIndex(o => o.id === this.selectedOrder.id);
+            if(orderIndex !== -1) this.availableOrders.splice(orderIndex, 1);
+
             alert(`📍 你順利到達【${newLocName}】拿到貨物！現在選擇交通工具送往目的地...`);
             this.showTransportModal(this.selectedOrder.target, "送貨");
         } else if(stage === "送貨") {
@@ -338,16 +440,26 @@ class Game {
         if(!isDamaged) {
             const getTip = Math.random() < 0.35;
             const tipAmt = getTip ? Math.floor(10 + Math.random()*20) : 0;
-            
-            this.player.money += finalPay + tipAmt;
+            const totalEarned = finalPay + tipAmt;
+
+            this.player.money += totalEarned;
             this.earnings += finalPay;
             this.tips += tipAmt;
             this.completedOrders++;
 
+            // 記錄至歷史 Log
+            this.historyLog.push({
+                pickup: ord.pickup.name,
+                target: ord.target.name,
+                itemName: ord.item.name,
+                earned: totalEarned,
+                transCost: this.currentDeliveryTransCost,
+                timeSpent: this.currentDeliveryTimeSpent
+            });
+
             alert(`✅ 成功送達【${ord.target.name}】！獲得運費 $${finalPay} ${tipAmt > 0 ? ` + 顧客滿意小費 $${tipAmt}！` : ''}`);
         }
 
-        this.generateOrders(1);
         this.saveState();
         this.updateUI();
     }
@@ -376,6 +488,7 @@ class Game {
         this.updateUI();
     }
 
+    // 買東西只扣錢與更新裝備，不刷新訂單池
     buyItem(type) {
         if(type === 'bag' && this.player.money >= 80) {
             this.player.money -= 80;
@@ -393,7 +506,10 @@ class Game {
     }
 
     endGame(reason) {
+        if(this.timerId) clearInterval(this.timerId);
+        if(this.poolInterval) clearInterval(this.poolInterval);
         localStorage.removeItem('hk_courier_saved_state');
+
         const netProfit = (this.earnings + this.tips) - this.expensesTrans - this.expensesFood - this.expensesEquip - this.penalties;
         
         if(netProfit > this.highScore) {
@@ -407,24 +523,24 @@ class Game {
         else if(netProfit < 0) title = "破產外賣員 💸";
 
         const reportHtml = `
-            <p style="color:#ff9800; text-align:center;"><strong>結束原因: ${reason}</strong></p>
-            <div class="report-row"><span>主角稱號</span><strong style="color:var(--accent);">${title}</strong></div>
+            <p style="color:var(--primary); text-align:center;"><strong>結束原因: ${reason}</strong></p>
+            <div class="report-row"><span>主角稱號</span><strong style="color:var(--primary);">${title}</strong></div>
             <div class="report-row"><span>初始個人錢包</span><strong>$${this.player.initialMoney}</strong></div>
             <div class="report-row"><span>今日完成訂單</span><strong>${this.completedOrders} 單</strong></div>
-            <div class="report-row"><span>送貨運費總收入</span><span style="color:#4caf50;">+$${this.earnings}</span></div>
-            <div class="report-row"><span>顧客小費總額</span><span style="color:#4caf50;">+$${this.tips}</span></div>
-            <div class="report-row"><span>交通費支出</span><span style="color:#e53935;">-$${this.expensesTrans}</span></div>
-            <div class="report-row"><span>伙食費支出</span><span style="color:#e53935;">-$${this.expensesFood}</span></div>
-            <div class="report-row"><span>裝備投資費</span><span style="color:#e53935;">-$${this.expensesEquip}</span></div>
-            <div class="report-row"><span>壞貨賠償罰款</span><span style="color:#e53935;">-$${this.penalties}</span></div>
-            <hr style="border-color:#444;">
+            <div class="report-row"><span>送貨運費總收入</span><span style="color:var(--success);">+$${this.earnings}</span></div>
+            <div class="report-row"><span>顧客小費總額</span><span style="color:var(--success);">+$${this.tips}</span></div>
+            <div class="report-row"><span>交通費支出</span><span style="color:var(--danger);">-$${this.expensesTrans}</span></div>
+            <div class="report-row"><span>伙食費支出</span><span style="color:var(--danger);">-$${this.expensesFood}</span></div>
+            <div class="report-row"><span>裝備投資費</span><span style="color:var(--danger);">-$${this.expensesEquip}</span></div>
+            <div class="report-row"><span>壞貨賠償罰款</span><span style="color:var(--danger);">-$${this.penalties}</span></div>
+            <hr style="border-color:#eee;">
             <div class="report-row">
                 <span>單日送貨淨利潤</span>
-                <strong style="font-size:18px; color:${netProfit>=0 ? '#4caf50' : '#e53935'};">$${netProfit} 港幣</strong>
+                <strong style="font-size:18px; color:${netProfit>=0 ? 'var(--success)' : 'var(--danger)'};">$${netProfit} 港幣</strong>
             </div>
             <div class="report-row">
                 <span>歷史最高紀錄 (High Score)</span>
-                <strong style="font-size:18px; color:var(--accent);">$${this.highScore} 港幣</strong>
+                <strong style="font-size:18px; color:var(--primary);">$${this.highScore} 港幣</strong>
             </div>
         `;
 
@@ -441,6 +557,8 @@ class Game {
 
     resetGameConfirm() {
         if(confirm("確定要重置目前的遊戲進度嗎？")) {
+            if(this.timerId) clearInterval(this.timerId);
+            if(this.poolInterval) clearInterval(this.poolInterval);
             localStorage.removeItem('hk_courier_saved_state');
             this.restartNewGame();
         }
@@ -462,7 +580,8 @@ class Game {
             tips: this.tips,
             completedOrders: this.completedOrders,
             currentLocation: this.currentLocation,
-            availableOrders: this.availableOrders
+            availableOrders: this.availableOrders,
+            historyLog: this.historyLog
         };
         localStorage.setItem('hk_courier_saved_state', JSON.stringify(state));
     }
@@ -487,9 +606,12 @@ class Game {
             this.completedOrders = state.completedOrders;
             this.currentLocation = state.currentLocation;
             this.availableOrders = state.availableOrders;
+            this.historyLog = state.historyLog || [];
 
             document.getElementById('screen-start').style.display = 'none';
             document.getElementById('main-game').style.display = 'flex';
+            
+            this.startDynamicPool();
             this.updateUI();
         } catch(e) {
             localStorage.removeItem('hk_courier_saved_state');
