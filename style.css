@@ -15,10 +15,10 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
 }
 
-body { 
+html, body { 
     margin: 0; 
     padding: 0; 
-    background-color: var(--bg); 
+    background-color: #f5f5f7 !important; /* 強制純淺色背景 */
     color: var(--text); 
     font-size: 14px; 
     user-select: none; 
@@ -32,6 +32,7 @@ body {
     display: flex; 
     flex-direction: column; 
     gap: 10px; 
+    background-color: #f5f5f7;
 }
 
 .card { 
@@ -73,6 +74,22 @@ body {
 .bar-fatigue { background: #e53935; }
 .bar-hunger { background: #fb8c00; }
 .bar-time { background: #0288d1; }
+
+/* 倒數計時專用進度條 */
+.timer-bar-container {
+    background: #ffe0b2;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.timer-bar-fill {
+    height: 100%;
+    background: var(--danger);
+    width: 100%;
+    transition: width 1s linear;
+}
 
 /* 按鈕風格 */
 button { 
@@ -169,7 +186,7 @@ button:disabled {
     color: var(--text-sub);
 }
 
-/* 彈窗樣式 */
+/* 彈窗樣式 (修正遮罩顏色) */
 .modal { 
     display: none; 
     position: fixed; 
@@ -177,8 +194,8 @@ button:disabled {
     left: 0; 
     width: 100%; 
     height: 100%; 
-    background: rgba(0,0,0,0.6); 
-    backdrop-filter: blur(3px);
+    background: rgba(0, 0, 0, 0.4); /* 半透明輕柔黑色遮罩 */
+    backdrop-filter: blur(4px);
     z-index: 100; 
     justify-content: center; 
     align-items: center; 
@@ -186,7 +203,7 @@ button:disabled {
 }
 
 .modal-content { 
-    background: var(--card-bg); 
+    background: #ffffff !important; 
     color: var(--text);
     width: 100%; 
     max-width: 500px; 
