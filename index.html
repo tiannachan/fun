@@ -64,8 +64,12 @@
         </div>
         
         <div style="margin-top: 10px;">
-            <div style="display:flex; justify-content:space-between; font-size:12px;">
-                <span>時間 (09:00 - 22:00)</span><span id="txt-time">09:00</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+                <span>時間 (09:00 - 22:00)</span>
+                <div style="display:fles; align-items:center; gap:8px;">
+                    <span id="txt-time" style="font-weight:bold">09:00</span>
+                    <button id="btn-toggle-time" onclick="game.toggleTimeLoop()" style ="padding:4px 8px; font-size:11px; background: var(--primary);">⏸️ 暫停</button>
+                </div>
             </div>
             <div class="bar-container"><div id="bar-time" class="bar-fill bar-time" style="width:0%"></div></div>
 
@@ -83,7 +87,7 @@
 
     <!-- Actions -->
     <div class="card" style="display:flex; gap:8px;">
-        <button class="btn-action" style="flex:1;" onclick="game.rest()">🛌 休息 30分 (免費)</button>
+        <button class="btn-action" style="flex:1;" onclick="game.rest()">🛌 休息 15分 (免費)</button>
         <button class="btn-action" style="flex:1;" onclick="game.eat()">茶餐廳 30分 ($55)</button>
         <button class="btn-action" style="background:var(--danger); color:white;" onclick="game.endGame('主動收工')">🚪 收工結算</button>
     </div>
@@ -134,7 +138,7 @@
 
         <p id="transport-info" style="font-size:13px; color:var(--text-sub); margin-top:0;"></p>
         <div id="transport-options"></div>
-        <button onclick="game.cancelTransportSelection('手動取消')" style="width:100%; margin-top:10px; background:#e0e0e0; color:#333;">放棄此單</button>
+        <button onclick="game.cancelTransportSelection('手動取消', true)" style="width:100%; margin-top:10px; background:#e0e0e0; color:#333;">放棄此單</button>
     </div>
 </div>
 
@@ -147,6 +151,24 @@
         <button onclick="game.restartNewGame()" style="width:100%; margin-top:15px; font-size:16px;">開局下一位主角</button>
     </div>
 </div>
+
+
+<!-- Pause screen -->
+<div id="modal-pause" class="modal">
+    <div class="modal-content" style="text-align:center;">
+        <h2 style="color:var(--primary);">⏸️ 遊戲已暫停</h2>
+
+        <p style="color:var(--text-sub);">
+            時間、派單及所有操作已停止
+        </p>
+
+        <button onclick="game.resumeGame()"
+                style="width:100%; margin-top:12px;">
+            ▶️ 繼續遊戲
+        </button>
+    </div>
+</div>
+
 
 <script src="main.js"></script>
 </body>

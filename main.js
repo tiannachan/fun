@@ -1,36 +1,40 @@
 // --- 30 個香港擬真地點 ---
 const LOCATIONS = [
-    { name: "旺角朗豪坊", area: "九龍", terrain: "平地商場", extraWalk: 2, extraFatigue: 2 },
-    { name: "觀塘 APM", area: "九龍", terrain: "平地工業區", extraWalk: 3, extraFatigue: 3 },
-    { name: "中環遮打大廈", area: "港島", terrain: "商業區地鐵直達", extraWalk: 2, extraFatigue: 2 },
-    { name: "西環正街半山", area: "港島", terrain: "長斜路/電梯", extraWalk: 12, extraFatigue: 14 },
-    { name: "深水埗基隆街唐樓", area: "九龍", terrain: "無電梯唐樓6樓", extraWalk: 9, extraFatigue: 18 },
-    { name: "慈雲山慈樂邨", area: "九龍", terrain: "陡峭山路", extraWalk: 15, extraFatigue: 20 },
-    { name: "荃灣南豐中心", area: "新界", terrain: "天橋網絡", extraWalk: 4, extraFatigue: 3 },
-    { name: "沙田新城市廣場", area: "新界", terrain: "大型商場", extraWalk: 5, extraFatigue: 3 },
-    { name: "元朗教育路", area: "新界", terrain: "街邊地舖", extraWalk: 4, extraFatigue: 4 },
-    { name: "銅鑼灣時代廣場", area: "港島", terrain: "繁忙商業區", extraWalk: 3, extraFatigue: 4 },
-    { name: "尖沙咀海港城", area: "九龍", terrain: "極大商場迷宮", extraWalk: 8, extraFatigue: 7 },
-    { name: "半山花園道豪宅", area: "港島", terrain: "高級半山陡坡", extraWalk: 14, extraFatigue: 18 },
-    { name: "藍田平田邨", area: "九龍", terrain: "山頂屋邨", extraWalk: 12, extraFatigue: 15 },
-    { name: "香港科學園", area: "新界", terrain: "海濱園區大平地", extraWalk: 6, extraFatigue: 4 },
-    { name: "屯門市中心", area: "新界", terrain: "商場天橋連網", extraWalk: 5, extraFatigue: 4 },
-    { name: "赤柱大街", area: "港島", terrain: "遠郊海濱旅遊區", extraWalk: 8, extraFatigue: 8 },
-    { name: "大埔墟四里", area: "新界", terrain: "舊區街市", extraWalk: 5, extraFatigue: 5 },
-    { name: "黃大仙下邨", area: "九龍", terrain: "老牌屋邨斜路", extraWalk: 7, extraFatigue: 9 },
-    { name: "數碼港三期", area: "港島", terrain: "南區偏遠園區", extraWalk: 6, extraFatigue: 5 },
-    { name: "將軍澳 PopCorn", area: "新界", terrain: "地鐵上蓋", extraWalk: 2, extraFatigue: 2 },
-    { name: "西貢市中心碼頭", area: "新界", terrain: "遠郊漁港", extraWalk: 6, extraFatigue: 6 },
-    { name: "東湧逸東邨", area: "新界", terrain: "離島機場周邊", extraWalk: 7, extraFatigue: 6 },
-    { name: "鴨脷洲海怡半島", area: "港島", terrain: "南區港鐵終點", extraWalk: 4, extraFatigue: 4 },
-    { name: "北角春秧街", area: "港島", terrain: "電車路街市", extraWalk: 4, extraFatigue: 4 },
-    { name: "葵芳新都會廣場", area: "新界", terrain: "地鐵樞紐", extraWalk: 3, extraFatigue: 2 },
-    { name: "九龍城獅子石道", area: "九龍", terrain: "單建舊樓", extraWalk: 5, extraFatigue: 6 },
-    { name: "紅磡黃埔花園", area: "九龍", terrain: "大型屋苑", extraWalk: 4, extraFatigue: 3 },
-    { name: "山頂廣場", area: "港島", terrain: "香港最高山頂", extraWalk: 16, extraFatigue: 22 },
-    { name: "大圍村屋", area: "新界", terrain: "鄉村村路", extraWalk: 8, extraFatigue: 7 },
-    { name: "太古城中心", area: "港島", terrain: "中產住宅區", extraWalk: 3, extraFatigue: 2 }
+    { name: "旺角朗豪坊", area: "九龍西", terrain: "平地商場", extraWalk: 2, extraFatigue: 2 },
+    { name: "觀塘 APM", area: "九龍東", terrain: "平地工業區", extraWalk: 3, extraFatigue: 3 },
+    { name: "中環遮打大廈", area: "港島中環灣仔", terrain: "商業區地鐵直達", extraWalk: 2, extraFatigue: 2 },
+    { name: "西環正街半山", area: "港島西", terrain: "長斜路/電梯", extraWalk: 12, extraFatigue: 14 },
+    { name: "深水埗基隆街唐樓", area: "九龍西", terrain: "無電梯唐樓6樓", extraWalk: 9, extraFatigue: 18 },
+    { name: "慈雲山慈樂邨", area: "九龍東", terrain: "陡峭山路", extraWalk: 15, extraFatigue: 20 },
+    { name: "荃灣南豐中心", area: "新界西", terrain: "天橋網絡", extraWalk: 4, extraFatigue: 3 },
+    { name: "沙田新城市廣場", area: "新界東", terrain: "大型商場", extraWalk: 5, extraFatigue: 3 },
+    { name: "元朗教育路", area: "新界西", terrain: "街邊地舖", extraWalk: 4, extraFatigue: 4 },
+    { name: "銅鑼灣時代廣場", area: "港島中環灣仔", terrain: "繁忙商業區", extraWalk: 3, extraFatigue: 4 },
+    { name: "尖沙咀海港城", area: "九龍西", terrain: "極大商場迷宮", extraWalk: 8, extraFatigue: 7 },
+    { name: "半山花園道豪宅", area: "港島中環灣仔", terrain: "高級半山陡坡", extraWalk: 14, extraFatigue: 18 },
+    { name: "藍田平田邨", area: "九龍東", terrain: "山頂屋邨", extraWalk: 12, extraFatigue: 15 },
+    { name: "香港科學園", area: "新界東", terrain: "海濱園區大平地", extraWalk: 6, extraFatigue: 4 },
+    { name: "屯門市中心", area: "新界西", terrain: "商場天橋連網", extraWalk: 5, extraFatigue: 4 },
+    { name: "赤柱大街", area: "港島南", terrain: "遠郊海濱旅遊區", extraWalk: 8, extraFatigue: 8 },
+    { name: "大埔墟四里", area: "新界東", terrain: "舊區街市", extraWalk: 5, extraFatigue: 5 },
+    { name: "黃大仙下邨", area: "九龍東", terrain: "老牌屋邨斜路", extraWalk: 7, extraFatigue: 9 },
+    { name: "數碼港三期", area: "港島南", terrain: "南區偏遠園區", extraWalk: 6, extraFatigue: 5 },
+    { name: "將軍澳 PopCorn", area: "將軍澳", terrain: "地鐵上蓋", extraWalk: 2, extraFatigue: 2 },
+    { name: "西貢市中心碼頭", area: "新界東", terrain: "遠郊漁港", extraWalk: 6, extraFatigue: 6 },
+    { name: "東涌逸東邨", area: "離島", terrain: "離島機場周邊", extraWalk: 7, extraFatigue: 6 },
+    { name: "鴨脷洲海怡半島", area: "港島南", terrain: "南區港鐵終點", extraWalk: 4, extraFatigue: 4 },
+    { name: "北角春秧街", area: "港島東", terrain: "電車路街市", extraWalk: 4, extraFatigue: 4 },
+    { name: "葵芳新都會廣場", area: "新界西", terrain: "地鐵樞紐", extraWalk: 3, extraFatigue: 2 },
+    { name: "九龍城獅子石道", area: "九龍中", terrain: "單建舊樓", extraWalk: 5, extraFatigue: 6 },
+    { name: "紅磡黃埔花園", area: "九龍中", terrain: "大型屋苑", extraWalk: 4, extraFatigue: 3 },
+    { name: "山頂廣場", area: "港島中環灣仔", terrain: "香港最高山頂", extraWalk: 16, extraFatigue: 22 },
+    { name: "大圍村屋", area: "新界東", terrain: "鄉村村路", extraWalk: 8, extraFatigue: 7 },
+    { name: "太古城中心", area: "港島東", terrain: "中產住宅區", extraWalk: 3, extraFatigue: 2 }
 ];
+
+function getShortDistrictName(fullName) {
+    return fullName.match(/將軍澳|東涌|西貢|屯門|元朗|荃灣|沙田|大圍|大埔|葵芳|北角|太古|銅鑼灣|中環|西環|赤柱|鴨脷洲|數碼港|山頂|觀塘|藍田|黃大仙|慈雲山|九龍城|紅磡|旺角|深水埗|尖沙咀|科學園|半山/)?.[0] || fullName;
+}
 
 const ITEM_TYPES = [
     { name: "📄 緊急合約文件", weight: 0.5, needBag: false, needCart: false, penalty: 80, isBlind: false },
@@ -45,11 +49,20 @@ const ITEM_TYPES = [
 
 const BACKGROUND_PROFILES = [
     { title: "體驗生活的富二代", walletMin: 1200, walletMax: 2500, story: "屋企有幾間鋪，純粹屋企坐得太悶，出嚟跑單當減肥做運動。" },
-    { title: "投資失利的前Banker", walletMin: 200, walletMax: 600, story: "炒幣槓桿爆倉輸光積蓄，手頭得返幾百蚊，靠步兵重新起家。" },
+    { title: "投資失利的前i-Banker", walletMin: 200, walletMax: 600, story: "炒幣槓桿爆倉輸光積蓄，手頭得返幾百蚊，靠步兵重新起家。" },
     { title: "剛畢業待業大專生", walletMin: 50, walletMax: 150, story: "搵咗三個月工都未有Offer，先跑步兵賺取零用錢過度。" },
     { title: "被裁員的IT工程師", walletMin: 300, walletMax: 800, story: "公司大裁員，打算邊跑單邊諗清楚人生方向。" },
-    { title: "極度省錢的退休叔叔", walletMin: 100, walletMax: 400, story: "退休無聊，每日跑幾單順便鍛鍊身體。" },
-    { title: "欠下一屁股債的斜槓青年", walletMin: 30, walletMax: 80, story: "戶口得返幾十蚊，第一單連搭地鐵都要精心計算！" }
+    { title: "極度慳錢的退休叔叔", walletMin: 100, walletMax: 400, story: "退休無聊，每日跑幾單順便鍛鍊身體。" },
+    { title: "欠下周身債的青年", walletMin: 30, walletMax: 80, story: "戶口得返幾十蚊，第一單連搭地鐵都要精心計算！" }
+];
+
+const HEALTH_CONDITIONS = [
+    {name: "健康良好",fatigueMultiplier: 1.0,description: "身體狀況正常"},
+    {name: "長期缺乏運動",fatigueMultiplier: 1.2,description: "行多兩步已經有啲氣喘"},
+    {name: "膝頭舊患",fatigueMultiplier: 1.35,description: "上落樓梯特別吃力"},
+    {name: "半馬拉松跑手",fatigueMultiplier: 0.8,description: "體能遠高於一般人"},
+    {name: "健身愛好者",fatigueMultiplier: 0.9,description: "平日有恆常訓練"},
+    {name: "久坐",fatigueMultiplier: 1.15,description: "體力一般偏差"}
 ];
 
 const SURNAMES = ["陳", "張", "李", "黃", "劉", "鄭", "梁", "郭", "何", "周", "吳", "朱", "徐", "孫", "馬"];
@@ -62,6 +75,8 @@ class Game {
         
         this.timerId = null;
         this.poolInterval = null;
+        this.gameLoopInterval = null;
+        this.isTimeRunning = true;
         this.historyLog = [];
 
         if(localStorage.getItem('hk_courier_saved_state')) {
@@ -74,7 +89,14 @@ class Game {
         const age = Math.floor(18 + Math.random() * 42);
         const home = LOCATIONS[Math.floor(Math.random()*LOCATIONS.length)].area;
         const profile = BACKGROUND_PROFILES[Math.floor(Math.random()*BACKGROUND_PROFILES.length)];
+        const health = HEALTH_CONDITIONS[Math.floor(Math.random()*HEALTH_CONDITIONS.length)];
         const initialWallet = Math.floor(profile.walletMin + Math.random() * (profile.walletMax - profile.walletMin));
+
+        let ageFatigueMultiplier = 1;
+
+        if(age >= 50) ageFatigueMultiplier = 1.15;
+        else if(age >= 40) ageFatigueMultiplier = 1.08;
+        else if(age <= 25) ageFatigueMultiplier = 0.95; 
 
         this.tempPlayer = {
             name, age, home,
@@ -82,6 +104,11 @@ class Game {
             initialMoney: initialWallet,
             story: profile.story,
             title: profile.title,
+
+            healthName: health.name,
+            healthDesc: health.description,
+            fatigueMultiplier: health.fatigueMultiplier * ageFatigueMultiplier,
+
             maxWeight: 8
         };
 
@@ -93,6 +120,8 @@ class Game {
         
         document.getElementById('screen-start').style.display = 'none';
         document.getElementById('screen-character').style.display = 'flex';
+        document.getElementById('card-health').innerText =`${health.name} (${health.description})`;
+
     }
 
     startDay() {
@@ -120,8 +149,77 @@ class Game {
 
         this.generateOrders(5);
         this.startDynamicPool();
+        this.startGameLoop();
         this.saveState();
         this.updateUI();
+    }
+
+    //啓動1秒=1分鐘的游戲時鐘
+    startGameLoop(){
+        if(this.gameLoopInterval) clearInterval(this.gameLoopInterval);
+        this.isTimeRunning = true
+        this.updateTimeButtonUI();
+
+        this.gameLoopInterval= setInterval(() => {
+            if (!this.isTimeRunning) return;
+
+            //1秒增加1分鐘
+            this.currentTime += 1;
+
+            //原地休息：疲勞度每秒減少0.5%
+            this.fatigue = Math.max(0, this.fatigue - 0.5)
+
+            //時間流逝帶來的輕微飢餓度上升：每秒+0.08%
+            this.hunger = Math.min(100, this.hunger + 0.08)
+
+            this.updateUI();
+        }, 1000);
+    }
+
+    //切換播放/暫停
+    toggleTimeLoop() {
+        
+        if (this.isTimeRunning) {
+            // Pause
+            this.isTimeRunning = false;
+
+            if (this.poolInterval) {
+                clearInterval(this.poolInterval);
+                this.poolInterval = null;
+            }
+
+            document.getElementById("modal-pause").style.display = "flex";
+
+        } else {
+
+            this.resumeGame();
+        }
+
+        this.updateTimeButtonUI();
+    }
+
+    resumeGame() {
+        this.isTimeRunning = true;
+        document.getElementById("modal-pause").style.display = "none";
+        this.startDynamicPool();
+        this.updateTimeButtonUI();
+    }
+
+
+
+    //更新暫停按鈕UI狀態
+    updateTimeButtonUI(){
+        const btn = document.getElementById('btn-toggle-time');
+        if(!btn) return;
+
+        if(this.isTimeRunning){
+            btn.innerText = "⏸️ 暫停";
+            btn.style.background = "var(--primary)";
+
+        } else {
+            btn.innerText = "▶️ 已暫停";
+            btn.style.background = "var(--success)";
+        }
     }
 
     // 動態訂單池：每 15 秒更新一張單（舊單移除，新單補入）
@@ -211,12 +309,15 @@ class Game {
         this.availableOrders.forEach((ord) => {
             const isHere = ord.pickup.name === curLocName;
             const isSameZone = ord.pickup.area === (curLocObj ? curLocObj.area : '');
+            
+            const shortPickup = getShortDistrictName(ord.pickup.name);
+            const shortTarget = getShortDistrictName(ord.target.name);
 
             const card = document.createElement('div');
             card.className = "order-card";
             card.innerHTML = `
                 <div class="route-header">
-                    <span class="route-path">📍 ${ord.pickup.name} ➔ 🏁 ${ord.target.name}</span>
+                    <span class="route-path">📍 ${shortPickup} ➔ 🏁 ${shortTarget}</span>
                     <span style="color:var(--success); font-weight:bold;">+$${ord.pay}</span>
                 </div>
                 <div style="font-size:12px; color:var(--text-sub); margin:4px 0;">
@@ -234,6 +335,7 @@ class Game {
         // 渲染今日歷史紀錄 Block
         this.renderHistoryLog();
 
+        this.updateTimeButtonUI(); //確保每次UI更新時同步刷新暫停/播放按鈕的狀態
         if(this.fatigue >= 100) this.endGame("疲勞過度在街頭暈倒被送院！");
         if(this.currentTime >= 22 * 60) this.endGame("時間到達 22:00 晚間，強制收工");
     }
@@ -289,13 +391,29 @@ class Game {
     }
 
     showTransportModal(destination, stage) {
+        const realisticDelay = Math.floor(Math.random() * 11) + 10; // 10-20 mins
         const modal = document.getElementById('modal-transport');
         const info = document.getElementById('transport-info');
         const optionsEl = document.getElementById('transport-options');
         
         const curLocObj = typeof this.currentLocation === 'string' ? LOCATIONS.find(l => l.name === this.currentLocation) : this.currentLocation;
         const curLocName = curLocObj ? curLocObj.name : "目前位置";
-        info.innerText = `從 【${curLocName}】 前往 【${destination.name}】 (${stage})`;
+
+        const pickupDetail = this.selectedOrder ? this.selectedOrder.pickup.name : curLocName;
+        const targetDetail = this.selectedOrder ? this.selectedOrder.target.name : destination.name;
+        const orderPay = this.selectedOrder ? this.selectedOrder.pay : 0;
+
+        info.innerHTML = `
+            <div style = "background:#f0f0f2; padding 8px 10px; border-radius:8px; margin-bottom:12px; border:1px solid #e0e0e0; color:#333;">
+                <b>📍 目前位置：</b>${curLocName}<br>    
+                <b>📦 取貨地點：</b>${pickupDetail}<br>
+                <b>🏁 送貨地點：</b>${targetDetail}<br>
+                <b>💰 訂單報酬：</b><span style ="color:var(--success); font-weight:bold;">+$${orderPay} 港幣</span>
+            </div>
+            <div style = "color:var(--primary); font-weight:bold; margin-bottom:4px;">
+                目前階段：【${stage}】（前往：${destination.name}）
+            </div>
+        `;
         optionsEl.innerHTML = "";
 
         // 啟動 20 秒倒數
@@ -316,38 +434,38 @@ class Game {
             { 
                 name: isExactSameLocation ? "🚶 就在原地/順路拿貨" : "🚶 步行走路", 
                 cost: 0, 
-                time: walkBaseTime + extraWalkTime, 
+                time: walkBaseTime + extraWalkTime + realisticDelay, 
                 fatigue: (isExactSameLocation ? 1 : 12) + extraFatigueVal 
             },
             { 
                 name: "🚇 港鐵 MTR", 
                 cost: isExactSameLocation ? 0 : (isCrossHarbor ? 14.5 : 6.5), 
-                time: mtrBaseTime + extraWalkTime, 
+                time: mtrBaseTime + extraWalkTime + realisticDelay, 
                 fatigue: 4 + extraFatigueVal 
             },
             { 
                 name: "🚌 九巴/城巴 Bus", 
                 cost: isExactSameLocation ? 0 : (isCrossHarbor ? 11.2 : 5.8), 
-                time: busBaseTime + extraWalkTime, 
+                time: busBaseTime + extraWalkTime + realisticDelay, 
                 fatigue: 5 + extraFatigueVal 
             },
             { 
                 name: "🚐 綠色小巴", 
                 cost: isExactSameLocation ? 0 : 7.5, 
-                time: (isSameArea ? 12 : 20) + extraWalkTime, 
+                time: (isSameArea ? 12 : 20) + extraWalkTime + realisticDelay, 
                 fatigue: 6 + extraFatigueVal, 
                 disabled: this.hasCart 
             },
             { 
                 name: "🚋 電車 / 輕鐵", 
                 cost: isExactSameLocation ? 0 : 3.0, 
-                time: (isSameArea ? 20 : 40) + extraWalkTime, 
+                time: (isSameArea ? 20 : 40) + extraWalkTime + realisticDelay, 
                 fatigue: 7 + extraFatigueVal 
             },
             { 
                 name: "🚕 的士 Taxi", 
                 cost: isExactSameLocation ? 0 : (isCrossHarbor ? 95.0 : 45.0), 
-                time: isExactSameLocation ? 2 : 10, 
+                time: isExactSameLocation ? 2 : 10 + realisticDelay, 
                 fatigue: 1 
             }
         ];
@@ -396,10 +514,12 @@ class Game {
         }, 1000);
     }
 
-    cancelTransportSelection(msg) {
+    cancelTransportSelection(msg, silent = false) {
         if(this.timerId) clearInterval(this.timerId);
         document.getElementById('modal-transport').style.display = "none";
-        alert(`⚠️ ${msg}`);
+        if(!silent){
+            alert(`⚠️ ${msg}`);
+        }
         this.selectedOrder = null;
         this.updateUI();
     }
@@ -411,7 +531,7 @@ class Game {
         this.player.money -= cost;
         this.expensesTrans += cost;
         this.currentTime += time;
-        this.fatigue += fatigue;
+        this.fatigue += fatigue * this.player.fatigueMultiplier;
         this.hunger += time * 0.12;
 
         this.currentDeliveryTransCost += cost;
@@ -475,10 +595,10 @@ class Game {
     }
 
     rest() {
-        this.currentTime += 30;
-        this.fatigue = Math.max(0, this.fatigue - 25);
-        this.hunger += 5;
-        alert("你在公園長椅休息了 30 分鐘，體力稍有恢復。");
+        this.currentTime += 15;
+        this.fatigue = Math.max(0, this.fatigue - 15);
+        this.hunger += 3;
+        alert("你在公園長椅休息了 15 分鐘，體力稍有恢復。");
         this.saveState();
         this.updateUI();
     }
